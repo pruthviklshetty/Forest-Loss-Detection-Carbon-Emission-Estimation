@@ -37,13 +37,15 @@ Loss codes `[19, 20]` chosen because the T composite (Jan-Apr 2019) is the canop
 
 ## 3. Patches and split
 
-110 non-overlapping 256x256 patches, 8 bands `['T_green', 'T_red', 'T_nir', 'T_swir1', 'T1_green', 'T1_red', 'T1_nir', 'T1_swir1']`. Split: spatially blocked (whole super-blocks per split) (2x2-patch blocks, seed 42).
+338 non-overlapping 256x256 patches, 8 bands `['T_green', 'T_red', 'T_nir', 'T_swir1', 'T1_green', 'T1_red', 'T1_nir', 'T1_swir1']`. Split: spatially blocked (whole super-blocks per split); overlapping extra patches added to TRAIN blocks only (2x2-patch blocks, seed 42).
 
-| Split | Patches | % | Patches w/ loss | Positive px (% of valid) | Area lost (ha) |
-|---|---|---|---|---|---|
-| train | 76 | 69% | 66 | 0.2652% | 131.7 |
-| val | 16 | 14% | 14 | 0.2854% | 29.8 |
-| test | 18 | 16% | 18 | 0.4391% | 51.5 |
+Train blocks additionally get overlapping patches at stride 128 px to enlarge the train set; val/test stay canonical non-overlapping. Positive-rate and area columns below are from canonical patches only.
+
+| Split | Patches (canon + overlap) | Patches w/ loss | Positive px (% of valid) | Area lost (ha) |
+|---|---|---|---|---|
+| train | 304 (76 + 228) | 268 | 0.2652% | 131.7 |
+| val | 16 (16 + 0) | 14 | 0.2854% | 29.8 |
+| test | 18 (18 + 0) | 18 | 0.4391% | 51.5 |
 
 Severe class imbalance is expected and is handled at train time (Dice + BCE, positive weighting).
 
@@ -64,7 +66,7 @@ Bands are stored as [0,1] reflectance. Per-band mean/std over valid train pixels
 
 ## 6. Caveats carried into Phase 3
 
-- **Small dataset.** 76 train / 16 val / 18 test non-overlapping patches. Mitigations for Phase 3: overlapping train patches (stride 128 ~4x the train set), strong augmentation, or widening the AOI.
+- **Small dataset.** Canonical: 76 train / 16 val / 18 test. Train is enlarged to 304 via stride-128 overlapping patches; still small, so strong augmentation is used and widening the AOI stays an option.
 - **Extreme class imbalance.** Positive rate ~0.27-0.44% of valid pixels. Needs Dice/Tversky + weighted BCE and threshold tuning; pixel accuracy will be near-trivial and is reported only for completeness.
 - **Edge margin.** The 256-px grid covers 2816 x 2560 of the 3064 x 2778 raster; the right/bottom margin holds 24.4 ha of GFC loss not in any patch (213.0 of 237.4 ha retained).
 - **Blocked split is not perfectly balanced.** Test positive rate (0.439%) exceeds train (0.265%); seed 42 is fixed in config and not re-picked to avoid gaming the split.

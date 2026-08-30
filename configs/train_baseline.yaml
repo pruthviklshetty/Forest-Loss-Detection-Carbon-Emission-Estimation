@@ -1,0 +1,37 @@
+# Phase 3 - standard U-Net baseline training config.
+# Phase 4 will reuse these exact schedule/data settings for a fair comparison.
+
+experiment: "baseline_unet"
+
+model:
+  name: "unet"
+  in_channels: 8
+  classes: 1
+  base_channels: 32
+  depth: 4
+
+data:
+  proc_dir: "data/processed"
+  min_valid_frac: 0.10        # drop near-empty edge patches
+  batch_size: 8
+  num_workers: 4
+  augment: true
+
+optim:
+  epochs: 80
+  lr: 0.0003
+  weight_decay: 1.0e-5
+  scheduler: "cosine"          # cosine annealing to 0
+  amp: true                    # mixed precision (6 GB VRAM)
+  grad_clip: 1.0
+
+loss:
+  pos_weight: 40.0
+  weight_bce: 1.0
+  weight_dice: 1.0
+
+eval:
+  primary_metric: "dice"       # checkpoint selection on val
+  threshold_sweep: [0.05, 0.95, 0.05]   # start, stop, step for val threshold search
+
+seed: 42

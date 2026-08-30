@@ -237,12 +237,18 @@ def main() -> None:
       f"`{split['band_order']}`. Split: {split['split_method']} "
       f"({split['split_block_patches']}x{split['split_block_patches']}-patch blocks, "
       f"seed {split['split_seed']}).\n")
-    A("| Split | Patches | % | Patches w/ loss | Positive px (% of valid) | Area lost (ha) |")
-    A("|---|---|---|---|---|---|")
+    tov = split.get("train_overlap_stride_px")
+    if tov:
+        A(f"Train blocks additionally get overlapping patches at stride {tov} px "
+          f"to enlarge the train set; val/test stay canonical non-overlapping. "
+          f"Positive-rate and area columns below are from canonical patches only.\n")
+    A("| Split | Patches (canon + overlap) | Patches w/ loss | Positive px (% of valid) | Area lost (ha) |")
+    A("|---|---|---|---|---|")
     for n in ("train", "val", "test"):
         d = split["splits"][n]
-        A(f"| {n} | {d['n_patches']} | {d['patch_frac']:.0%} | {d['n_patches_with_loss']} | "
-          f"{d['loss_px_pct_of_valid']:.4f}% | {d['ha_lost']:.1f} |")
+        A(f"| {n} | {d['n_patches']} ({d['n_patches_canonical']} + {d['n_patches_overlap']}) | "
+          f"{d['n_patches_with_loss']} | {d['loss_px_pct_of_valid']:.4f}% | "
+          f"{d['ha_lost_canonical']:.1f} |")
     A("")
     A("Severe class imbalance is expected and is handled at train time "
       "(Dice + BCE, positive weighting).\n")
@@ -262,13 +268,14 @@ def main() -> None:
             A(f"- `results/figures/{f.name}`")
     A("")
 
-    patch_ha = sum(v["ha_lost"] for v in split["splits"].values())
+    patch_ha = sum(v["ha_lost_canonical"] for v in split["splits"].values())
     A("## 6. Caveats carried into Phase 3\n")
-    A(f"- **Small dataset.** {split['splits']['train']['n_patches']} train / "
-      f"{split['splits']['val']['n_patches']} val / "
-      f"{split['splits']['test']['n_patches']} test non-overlapping patches. "
-      f"Mitigations for Phase 3: overlapping train patches (stride 128 ~4x the "
-      f"train set), strong augmentation, or widening the AOI.")
+    A(f"- **Small dataset.** Canonical: {split['splits']['train']['n_patches_canonical']} "
+      f"train / {split['splits']['val']['n_patches_canonical']} val / "
+      f"{split['splits']['test']['n_patches_canonical']} test. Train is enlarged to "
+      f"{split['splits']['train']['n_patches']} via stride-"
+      f"{split.get('train_overlap_stride_px')} overlapping patches; still small, so "
+      f"strong augmentation is used and widening the AOI stays an option.")
     A(f"- **Extreme class imbalance.** Positive rate ~0.27-0.44% of valid pixels. "
       f"Needs Dice/Tversky + weighted BCE and threshold tuning; pixel accuracy "
       f"will be near-trivial and is reported only for completeness.")

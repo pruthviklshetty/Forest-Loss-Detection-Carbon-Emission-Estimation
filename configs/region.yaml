@@ -116,6 +116,7 @@ patching:
   split_unit: "patch"
   split_seed: 42
   split_block_patches: 2   # 2x2-patch (512 px) super-blocks assigned whole to one split
+  train_overlap_stride_px: 128   # extra overlapping patches, TRAIN blocks only, to enlarge the train set
   split_note: >
     Spatially blocked split: patches are grouped into split_block_patches^2
     super-blocks and whole blocks go to one split, so no test patch is

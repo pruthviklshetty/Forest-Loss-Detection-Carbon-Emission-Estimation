@@ -66,9 +66,9 @@ configs/            YAML configs per experiment
 
 | Phase | Description | Status |
 |------:|-------------|--------|
-| 1 | Environment & scope | in progress |
-| 2 | Data acquisition & preprocessing | not started |
-| 3 | Baseline standard U-Net | not started |
+| 1 | Environment & scope | done |
+| 2 | Data acquisition & preprocessing | done |
+| 3 | Baseline standard U-Net | done — test IoU 0.198, Dice 0.331 |
 | 4 | Attention U-Net + MobileNetV2 | not started |
 | 5 | Change detection & area computation | not started |
 | 6 | Carbon estimation module | not started |

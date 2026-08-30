@@ -105,6 +105,8 @@ def main() -> None:
     fracs = cfg["patching"]["split_fractions"]
     seed = int(cfg["patching"]["split_seed"])
     block = int(cfg["patching"].get("split_block_patches", 2))
+    tr_overlap = cfg["patching"].get("train_overlap_stride_px")
+    tr_overlap = int(tr_overlap) if tr_overlap else None
 
     img, label, valid, meta = _load_stack()
     _, H, W = img.shape
@@ -112,60 +114,74 @@ def main() -> None:
 
     starts_r = list(range(0, H - P + 1, stride))
     starts_c = list(range(0, W - P + 1, stride))
-    print(f"  patch grid: {len(starts_r)} rows x {len(starts_c)} cols "
+    print(f"  canonical patch grid: {len(starts_r)} rows x {len(starts_c)} cols "
           f"= {len(starts_r) * len(starts_c)} patches of {P}x{P}")
 
     block_assign = _blocked_split(len(starts_r), len(starts_c), block, fracs, seed)
+
+    def canonical_split(r0: int, c0: int) -> str:
+        """Split of the canonical block containing the pixel-centre (r0,c0)."""
+        ri = min(len(starts_r) - 1, r0 // stride)
+        ci = min(len(starts_c) - 1, c0 // stride)
+        return block_assign[(ri - ri % block, ci - ci % block)]
 
     (_PROC / "patches").mkdir(parents=True, exist_ok=True)
     for old in (_PROC / "patches").glob("*.npz"):
         old.unlink()
 
     rows = []
-    train_pixel_sums = np.zeros(8, np.float64)
-    train_pixel_sqsums = np.zeros(8, np.float64)
-    train_pixel_count = 0
+    stats = {"sums": np.zeros(8, np.float64), "sq": np.zeros(8, np.float64), "n": 0}
 
+    def emit(pid: str, r0: int, c0: int, split: str, is_overlap: int) -> None:
+        sl = (slice(r0, r0 + P), slice(c0, c0 + P))
+        pimg = img[:, sl[0], sl[1]].astype(np.float32).copy()
+        plab = label[sl].astype(np.uint8).copy()
+        pval = valid[sl].astype(np.uint8).copy()
+        n_valid, n_loss = int(pval.sum()), int(plab.sum())
+        rows.append({
+            "patch_id": pid, "px_r0": r0, "px_c0": c0, "size": P,
+            "split": split, "is_overlap": is_overlap,
+            "n_valid_px": n_valid, "valid_frac": round(n_valid / (P * P), 4),
+            "n_loss_px": n_loss, "loss_frac": round(n_loss / (P * P), 6),
+            "loss_frac_of_valid": round(n_loss / max(n_valid, 1), 6),
+            "has_loss": int(n_loss > 0),
+        })
+        np.savez_compressed(_PROC / "patches" / f"{pid}.npz",
+                            img=pimg, label=plab, valid=pval)
+        # normalisation stats: canonical train patches only (no double-count)
+        if split == "train" and not is_overlap:
+            m = pval.astype(bool)
+            if m.any():
+                v = pimg[:, m]
+                stats["sums"] += v.sum(axis=1)
+                stats["sq"] += (v ** 2).sum(axis=1)
+                stats["n"] += int(m.sum())
+
+    # --- canonical non-overlapping patches (all splits) --------------------
     for ri, r0 in enumerate(starts_r):
         for ci, c0 in enumerate(starts_c):
-            pid = f"p_{ri:02d}_{ci:02d}"
-            sl = (slice(r0, r0 + P), slice(c0, c0 + P))
-            pimg = img[:, sl[0], sl[1]].copy()
-            plab = label[sl].copy()
-            pval = valid[sl].copy()
-            split = block_assign[(ri - ri % block, ci - ci % block)]
+            emit(f"p_{ri:02d}_{ci:02d}", r0, c0, canonical_split(r0, c0), 0)
 
-            n_valid = int(pval.sum())
-            n_loss = int(plab.sum())
-            rows.append({
-                "patch_id": pid, "row_idx": ri, "col_idx": ci,
-                "px_r0": r0, "px_c0": c0, "size": P,
-                "split": split,
-                "n_valid_px": n_valid,
-                "valid_frac": round(n_valid / (P * P), 4),
-                "n_loss_px": n_loss,
-                "loss_frac": round(n_loss / (P * P), 6),
-                "loss_frac_of_valid": round(n_loss / max(n_valid, 1), 6),
-                "has_loss": int(n_loss > 0),
-            })
-            np.savez_compressed(_PROC / "patches" / f"{pid}.npz",
-                                img=pimg.astype(np.float32),
-                                label=plab.astype(np.uint8),
-                                valid=pval.astype(np.uint8))
-            if split == "train":
-                m = pval.astype(bool)
-                if m.any():
-                    v = pimg[:, m]                       # (8, k)
-                    train_pixel_sums += v.sum(axis=1)
-                    train_pixel_sqsums += (v ** 2).sum(axis=1)
-                    train_pixel_count += m.sum()
+    # --- extra overlapping patches, TRAIN blocks only --------------------
+    n_overlap = 0
+    if tr_overlap and tr_overlap < P:
+        canon = {(r0, c0) for r0 in starts_r for c0 in starts_c}
+        for r0 in range(0, H - P + 1, tr_overlap):
+            for c0 in range(0, W - P + 1, tr_overlap):
+                if (r0, c0) in canon:
+                    continue
+                if canonical_split(r0, c0) != "train":
+                    continue
+                emit(f"p_ov_{r0:05d}_{c0:05d}", r0, c0, "train", 1)
+                n_overlap += 1
+        print(f"  + {n_overlap} overlapping train patches (stride {tr_overlap})")
 
-    mean = train_pixel_sums / max(train_pixel_count, 1)
-    var = train_pixel_sqsums / max(train_pixel_count, 1) - mean ** 2
+    mean = stats["sums"] / max(stats["n"], 1)
+    var = stats["sq"] / max(stats["n"], 1) - mean ** 2
     std = np.sqrt(np.maximum(var, 1e-12))
     norm = {"band_order": BAND_ORDER,
-            "computed_over": "valid pixels of train patches",
-            "n_pixels": int(train_pixel_count),
+            "computed_over": "valid pixels of canonical (non-overlap) train patches",
+            "n_pixels": int(stats["n"]),
             "mean": [round(float(x), 6) for x in mean],
             "std": [round(float(x), 6) for x in std]}
     (_PROC / "norm_stats.json").write_text(json.dumps(norm, indent=2), encoding="utf-8")
@@ -178,35 +194,48 @@ def main() -> None:
     split_lists = {s: [r["patch_id"] for r in rows if r["split"] == s]
                    for s in ("train", "val", "test")}
     gsd = int(cfg["region"]["target_gsd_m"])
+
+    def split_stat(s: str) -> dict:
+        allr = [r for r in rows if r["split"] == s]
+        canr = [r for r in allr if not r["is_overlap"]]      # area/rate from canonical only
+        loss_px = sum(r["n_loss_px"] for r in canr)
+        valid_px = sum(r["n_valid_px"] for r in canr)
+        return {
+            "n_patches": len(allr),
+            "n_patches_canonical": len(canr),
+            "n_patches_overlap": len(allr) - len(canr),
+            "n_patches_with_loss": sum(1 for r in allr if r["has_loss"]),
+            "loss_px_canonical": loss_px,
+            "valid_px_canonical": valid_px,
+            "loss_px_pct_of_valid": round(100 * loss_px / max(valid_px, 1), 4),
+            "ha_lost_canonical": round(loss_px * gsd * gsd / 1e4, 2),
+        }
+
     summary = {
         "patch_size_px": P, "stride_px": stride,
+        "train_overlap_stride_px": tr_overlap,
         "split_fractions_target": fracs, "split_seed": seed,
         "split_block_patches": block,
-        "split_method": "spatially blocked (whole super-blocks per split)",
+        "split_method": "spatially blocked (whole super-blocks per split); "
+                        "overlapping extra patches added to TRAIN blocks only",
         "band_order": BAND_ORDER,
         "n_patches": len(rows),
-        "splits": {s: {
-            "n_patches": len(ids),
-            "patch_frac": round(len(ids) / len(rows), 3),
-            "n_patches_with_loss": sum(1 for r in rows if r["split"] == s and r["has_loss"]),
-            "loss_px": sum(r["n_loss_px"] for r in rows if r["split"] == s),
-            "valid_px": sum(r["n_valid_px"] for r in rows if r["split"] == s),
-            "loss_px_pct_of_valid": round(
-                100 * sum(r["n_loss_px"] for r in rows if r["split"] == s)
-                / max(sum(r["n_valid_px"] for r in rows if r["split"] == s), 1), 4),
-            "ha_lost": round(sum(r["n_loss_px"] for r in rows if r["split"] == s) * gsd * gsd / 1e4, 2),
-        } for s, ids in split_lists.items()},
+        "n_patches_canonical": sum(1 for r in rows if not r["is_overlap"]),
+        "splits": {s: split_stat(s) for s in ("train", "val", "test")},
         "ids": split_lists,
     }
     (_PROC / "split.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
-    print(f"\n  wrote {len(rows)} patches to data/processed/patches/")
+    print(f"\n  wrote {len(rows)} patches "
+          f"({summary['n_patches_canonical']} canonical + "
+          f"{len(rows) - summary['n_patches_canonical']} overlap)")
     for s in ("train", "val", "test"):
         d = summary["splits"][s]
-        print(f"    {s:5s}: {d['n_patches']:3d} patches ({d['patch_frac']:.0%}), "
-              f"{d['n_patches_with_loss']:3d} with loss, "
-              f"positive rate {d['loss_px_pct_of_valid']:.3f}% of valid px, "
-              f"{d['ha_lost']:.1f} ha")
+        print(f"    {s:5s}: {d['n_patches']:4d} patches "
+              f"({d['n_patches_canonical']} canon + {d['n_patches_overlap']} ov), "
+              f"{d['n_patches_with_loss']:4d} with loss, "
+              f"pos rate {d['loss_px_pct_of_valid']:.3f}% (canon), "
+              f"{d['ha_lost_canonical']:.1f} ha")
     print("  index.csv / split.json / norm_stats.json written")
 
 

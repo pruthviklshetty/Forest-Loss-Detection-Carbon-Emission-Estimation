@@ -9,7 +9,7 @@
     "T1_nir",
     "T1_swir1"
   ],
-  "computed_over": "valid pixels of train patches",
+  "computed_over": "valid pixels of canonical (non-overlap) train patches",
   "n_pixels": 4967118,
   "mean": [
     0.059007,
