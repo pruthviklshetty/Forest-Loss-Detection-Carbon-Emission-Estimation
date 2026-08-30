@@ -44,6 +44,12 @@ threshold: test Dice is 0.324 at 0.5 and 0.331 at 0.90.
 | Recall | 0.348 | 0.449 |
 | Confusion (px) | tp 1792 / fp 3887 / fn 3357 / tn 1,163,457 | - |
 
+> Phase 4 update: the val threshold sweep was later widened to
+> `[0.10, 0.98, 0.02]` and the baseline re-evaluated on it - operating
+> threshold 0.92, **test IoU 0.196 / Dice 0.327** (unchanged conclusion;
+> `results/metrics/baseline_unet.json` now holds these). The 0.90 / IoU 0.198
+> figures above are from the original coarser sweep.
+
 Files: `results/metrics/baseline_unet.json` (full sweep) and a copy at
 `results/metrics/baseline.json` (the name used in the build brief).
 Figures: `results/figures/baseline_unet_training_curves.png`,

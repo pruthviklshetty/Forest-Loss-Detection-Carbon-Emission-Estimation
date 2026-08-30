@@ -1,0 +1,38 @@
+# Phase 4 - Attention U-Net + MobileNetV2 (proposed model).
+# Schedule / data / loss / seed are byte-for-byte identical to
+# configs/train_baseline.yaml so the only variable is the architecture.
+
+experiment: "attention_unet"
+
+model:
+  name: "attention_unet_mnv2"
+  in_channels: 8
+  classes: 1
+  encoder_weights: "imagenet"          # ImageNet-pretrained MobileNetV2 encoder
+  decoder_channels: [256, 128, 64, 32, 16]
+
+data:
+  proc_dir: "data/processed"
+  min_valid_frac: 0.10
+  batch_size: 8
+  num_workers: 4
+  augment: true
+
+optim:
+  epochs: 80
+  lr: 0.0003
+  weight_decay: 1.0e-5
+  scheduler: "cosine"
+  amp: true
+  grad_clip: 1.0
+
+loss:
+  pos_weight: 40.0
+  weight_bce: 1.0
+  weight_dice: 1.0
+
+eval:
+  primary_metric: "dice"
+  threshold_sweep: [0.10, 0.98, 0.02]
+
+seed: 42

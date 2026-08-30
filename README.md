@@ -68,8 +68,8 @@ configs/            YAML configs per experiment
 |------:|-------------|--------|
 | 1 | Environment & scope | done |
 | 2 | Data acquisition & preprocessing | done |
-| 3 | Baseline standard U-Net | done — test IoU 0.198, Dice 0.331 |
-| 4 | Attention U-Net + MobileNetV2 | not started |
+| 3 | Baseline standard U-Net | done — test IoU 0.196, Dice 0.327 |
+| 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.168, Dice 0.287 (no gain over baseline) |
 | 5 | Change detection & area computation | not started |
 | 6 | Carbon estimation module | not started |
 | 7 | Evaluation, validation & short paper | not started |

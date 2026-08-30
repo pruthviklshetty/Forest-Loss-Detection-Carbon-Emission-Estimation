@@ -32,6 +32,6 @@ loss:
 
 eval:
   primary_metric: "dice"       # checkpoint selection on val
-  threshold_sweep: [0.05, 0.95, 0.05]   # start, stop, step for val threshold search
+  threshold_sweep: [0.10, 0.98, 0.02]   # start, stop, step for val threshold search
 
 seed: 42

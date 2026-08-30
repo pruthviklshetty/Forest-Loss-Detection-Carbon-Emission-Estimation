@@ -79,11 +79,8 @@ def main() -> None:
     tr, va, tl, vl = _loaders(dc)
     print(f"train patches: {len(tr)} | val patches: {len(va)} | steps/epoch: {len(tl)}")
 
-    model = build_model(cfg["model"]["name"],
-                        in_channels=cfg["model"]["in_channels"],
-                        classes=cfg["model"]["classes"],
-                        base_channels=cfg["model"]["base_channels"],
-                        depth=cfg["model"]["depth"]).to(device)
+    model_kw = {k: v for k, v in cfg["model"].items() if k != "name"}
+    model = build_model(cfg["model"]["name"], **model_kw).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"model params: {n_params:,}")
 

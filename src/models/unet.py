@@ -79,4 +79,9 @@ def build_model(name: str, **kw) -> nn.Module:
     name = name.lower()
     if name in ("unet", "baseline_unet"):
         return UNet(**kw)
+    if name in ("attention_unet_mnv2", "attention_unet", "att_unet"):
+        from .attention_unet import AttentionUNetMobileNetV2
+
+        allowed = {"in_channels", "classes", "encoder_weights", "decoder_channels"}
+        return AttentionUNetMobileNetV2(**{k: v for k, v in kw.items() if k in allowed})
     raise ValueError(f"unknown model '{name}'")
