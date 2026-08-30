@@ -125,6 +125,25 @@ def main() -> None:
         ci = min(len(starts_c) - 1, c0 // stride)
         return block_assign[(ri - ri % block, ci - ci % block)]
 
+    def overlap_crop_all_train(r0: int, c0: int) -> bool:
+        """True iff the ENTIRE P x P crop at (r0, c0) lies within
+        train-assigned canonical blocks. A stride-128 crop is P px wide, so it
+        can straddle a 512 px block boundary; if any canonical block its
+        footprint touches is val or test, the crop is dropped (not reassigned)
+        to keep val/test territory strictly out of training. Leakage audit,
+        2026-08: the previous rule tested only the top-left corner's block and
+        let 50% of val and 50% of test patches receive training pixels.
+        """
+        ri0, ri1 = r0 // stride, (r0 + P - 1) // stride
+        ci0, ci1 = c0 // stride, (c0 + P - 1) // stride
+        for ri in range(ri0, ri1 + 1):
+            for ci in range(ci0, ci1 + 1):
+                ri_c = min(ri, len(starts_r) - 1)
+                ci_c = min(ci, len(starts_c) - 1)
+                if block_assign[(ri_c - ri_c % block, ci_c - ci_c % block)] != "train":
+                    return False
+        return True
+
     (_PROC / "patches").mkdir(parents=True, exist_ok=True)
     for old in (_PROC / "patches").glob("*.npz"):
         old.unlink()
@@ -166,15 +185,18 @@ def main() -> None:
     n_overlap = 0
     if tr_overlap and tr_overlap < P:
         canon = {(r0, c0) for r0 in starts_r for c0 in starts_c}
+        n_dropped = 0
         for r0 in range(0, H - P + 1, tr_overlap):
             for c0 in range(0, W - P + 1, tr_overlap):
                 if (r0, c0) in canon:
                     continue
-                if canonical_split(r0, c0) != "train":
+                if not overlap_crop_all_train(r0, c0):
+                    n_dropped += 1
                     continue
                 emit(f"p_ov_{r0:05d}_{c0:05d}", r0, c0, "train", 1)
                 n_overlap += 1
-        print(f"  + {n_overlap} overlapping train patches (stride {tr_overlap})")
+        print(f"  + {n_overlap} overlapping train patches (stride {tr_overlap}); "
+              f"{n_dropped} candidate crops dropped for touching a val/test block")
 
     mean = stats["sums"] / max(stats["n"], 1)
     var = stats["sq"] / max(stats["n"], 1) - mean ** 2
