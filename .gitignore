@@ -1,0 +1,33 @@
+# Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Credentials
+*.json.key
+.ee_credentials
+service_account*.json
+
+# Large data / model artifacts (keep dirs via .gitkeep, ignore contents)
+data/raw/*
+data/masks/*
+data/processed/*
+!data/**/.gitkeep
+*.tif
+*.tiff
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+
+# Results binaries (keep metrics JSON/CSV and markdown, ignore heavy figures if needed)
+results/figures/*.png
+!results/figures/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,117 @@
+# ===========================================================================
+# Study region and bi-temporal acquisition window
+# Phase 1 deliverable. All later phases read this file; do not hard-code these
+# values anywhere else.
+# ===========================================================================
+
+region:
+  name: "Wayanad Plateau, Western Ghats, Kerala, India"
+  short_id: "wayanad_wg"
+  country: "India"
+  admin_context: >
+    Wayanad district, Kerala, on the Deccan/Western Ghats plateau margin.
+    Mosaic of semi-evergreen and moist-deciduous forest, plantation (tea,
+    coffee, cardamom), and smallholder agriculture. Chosen for Indian
+    relevance and an active, documented forest-loss record; deforestation
+    here is more fragmented than Amazon arc-of-deforestation clearing, which
+    is noted as a scope limitation.
+
+  # Bounding box in EPSG:4326 (WGS84). Order given both ways to avoid ambiguity.
+  bbox:
+    lon_min: 76.00
+    lat_min: 11.55
+    lon_max: 76.28
+    lat_max: 11.80
+    # GeoJSON-style [W, S, E, N]
+    wsen: [76.00, 11.55, 76.28, 11.80]
+  approx_extent_km: [30.5, 27.8]   # E-W, N-S at this latitude
+  approx_area_ha: 84800
+
+  # Working projection for area computation and patching (metric, local UTM).
+  utm_epsg: 32643            # UTM zone 43N
+  target_gsd_m: 10           # Sentinel-2 native 10 m; 20 m bands resampled to 10 m
+
+# ---------------------------------------------------------------------------
+# Bi-temporal windows. Dry season (NE monsoon retreat -> pre-SW monsoon) to
+# minimise cloud. Sentinel-2 L2A (COPERNICUS/S2_SR_HARMONIZED) is the primary
+# source; global L2A coverage is reliable from 2019 onward, so the T window is
+# kept at/after 2019-01. Fallback: L1C (COPERNICUS/S2_HARMONIZED) + manual
+# scaling if too few clear L2A scenes — to be decided in Phase 2, not assumed.
+# ---------------------------------------------------------------------------
+time_windows:
+  T:
+    label: "2019"
+    start: "2019-01-01"
+    end:   "2019-04-15"
+    note: "Post-NE-monsoon dry window; least cloud over the Ghats."
+  T_plus_1:
+    label: "2021"
+    start: "2021-01-01"
+    end:   "2021-04-15"
+    note: "Same seasonal window two years later for phenological comparability."
+
+# ---------------------------------------------------------------------------
+# Sentinel-2 band selection: 4 bands per timepoint -> 8-band stack.
+# Order is fixed and used everywhere downstream.
+# ---------------------------------------------------------------------------
+bands:
+  selected: ["B3", "B4", "B8", "B11"]
+  names:    ["green", "red", "nir", "swir1"]
+  native_gsd_m: {B3: 10, B4: 10, B8: 10, B11: 20}
+  rationale: >
+    B4 (red) + B8 (NIR) give NDVI, which is both the primary vegetation-
+    structure cue for segmentation and the input to the Phase 6 carbon model.
+    B3 (green) adds canopy-vigour / water separation and enables a green-NIR
+    false-colour check. B11 (SWIR1) is highly sensitive to canopy moisture and
+    exposed soil, making freshly cleared land, burn scars and dry non-forest
+    separable from intact canopy. B2 (blue) is deliberately dropped: at 10 m it
+    is dominated by atmospheric haze and adds little class separability over
+    green. SWIR1 (B11) is preferred over SWIR2 (B12) because B11 has stronger
+    vegetation-moisture contrast, while B12 leans toward mineral/geologic
+    response. B11 (20 m) is bilinearly resampled to 10 m during preprocessing.
+  stack_layout: >
+    Channel order in the 8-band tensor:
+    [T_green, T_red, T_nir, T_swir1, T1_green, T1_red, T1_nir, T1_swir1].
+
+# ---------------------------------------------------------------------------
+# Ground truth: Hansen Global Forest Change (GFC).
+# Dataset: UMD/hansen/global_forest_change_2023_v1_11 (or latest v1.x at
+# Phase 2 time — record the exact version used).
+#
+# GFC 'lossyear' is a year-of-loss code (1..N for 2001..200N), NOT a binary
+# T-vs-T+1 mask. Conversion is its own documented sub-step in Phase 2:
+#   - forest baseline: treecover2000 >= canopy_threshold_pct  -> "forest at 2000"
+#   - deforestation (positive class): pixels where forest-at-2000 AND
+#     lossyear IN loss_year_codes
+#   - everything else -> non-forest / no-change
+# Loss-year codes 19 and 20 are used because the T image (early 2019) captures
+# the forest state entering 2019 and the T+1 image (early 2021) captures the
+# state entering 2021, so calendar-2019 and calendar-2020 loss falls between
+# the two acquisitions. Revisit if Phase 2 acquisition dates shift.
+# ---------------------------------------------------------------------------
+ground_truth:
+  source: "Hansen Global Forest Change"
+  gee_asset: "UMD/hansen/global_forest_change_2023_v1_11"
+  gee_asset_note: "Confirm/replace with exact version pulled in Phase 2."
+  canopy_threshold_pct: 30
+  loss_year_codes: [19, 20]
+  positive_class: "new forest loss between T and T+1"
+
+# ---------------------------------------------------------------------------
+# Patching / splits (executed in Phase 2).
+# ---------------------------------------------------------------------------
+patching:
+  patch_size_px: 256
+  stride_px: 256           # non-overlapping; may add overlap for train aug only
+  split_fractions: {train: 0.70, val: 0.15, test: 0.15}
+  split_unit: "patch"
+  split_seed: 42
+  split_note: >
+    Spatially blocked split preferred over random patch split to limit
+    train/test leakage from adjacent pixels; method finalised in Phase 2.
+
+compute:
+  local_gpu: "NVIDIA GeForce RTX 3050 Laptop 6 GB"
+  notes: >
+    6 GB VRAM constrains batch size at 256x256; plan batch_size 4-8 with
+    mixed precision. Colab (no guaranteed GPU, ~4 h sessions) is the fallback.
