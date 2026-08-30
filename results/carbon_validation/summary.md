@@ -18,3 +18,11 @@ NDVI is from the Year-T (2019) composite (pre-clearing canopy). Aboveground carb
 The regression gives a lower, NDVI-weighted estimate than the flat 3-bin scheme because most cleared pixels sit at moderate NDVI, below the 150 tC/ha 'moderate' bin constant.
 
 Figures: `results/figures/phase6_carbon_calibration.png`, `results/figures/phase6_co2_estimates.png`.
+
+## Phase 7 - external plausibility check
+
+The test-region CO2 estimate was sanity-checked against Global Forest Watch's
+published Wayanad-district figure (Harris et al. 2021 methodology). Summary:
+this study's aboveground-only, CO2-only emission factor (~386-397 t CO2/ha) is
+~60% of GFW's all-pools, all-gases factor (~638 t CO2e/ha) - the expected
+fraction. Full working: `results/carbon_validation/co2_sanity_check.md`.
