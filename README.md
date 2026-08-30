@@ -64,15 +64,19 @@ configs/            YAML configs per experiment
 
 ## Phase status
 
+Numbers below are the **post-leakage-audit re-run** (see `docs/phase7_notes.md`
+and `report.md` §5.6; pre-audit values are in git history at `c9947eb`).
+
 | Phase | Description | Status |
 |------:|-------------|--------|
 | 1 | Environment & scope | done |
-| 2 | Data acquisition & preprocessing | done |
-| 3 | Baseline standard U-Net | done — test IoU 0.196, Dice 0.327 |
-| 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.168, Dice 0.287 (no gain over baseline) |
-| 5 | Change detection & area computation | done — test region 49.9 ha predicted vs 51.5 ha GFC (0.97x) |
-| 6 | Carbon estimation module | done — test region ~19,800 tCO₂ (regression) vs ~24,700 (3-bin) |
-| 7 | Evaluation, validation & short paper | done — `report.md`, CO₂ sanity-check vs GFW |
+| 2 | Data acquisition & preprocessing | done — 261 train / 16 val / 18 test patches |
+| 3 | Baseline standard U-Net | done — test IoU 0.161, Dice 0.278 |
+| 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.081, Dice 0.149 (clearly worse than baseline) |
+| 5 | Change detection & area computation | done — test region 39.6 ha predicted vs 51.5 ha GFC (0.77×, −23%) |
+| 6 | Carbon estimation module | done — GFC ref area: regression 94.3 ktCO₂ vs 3-bin 116.7 ktCO₂ (~19% lower) |
+| 7 | Evaluation, validation & short paper | done — `report.md`, leakage audit, CO₂ sanity-check vs GFW |
+| audit | Data-leakage fix + full re-run | done — `scripts/verify_no_leakage.py` exits 0 |
 
 ## Ground rules
 

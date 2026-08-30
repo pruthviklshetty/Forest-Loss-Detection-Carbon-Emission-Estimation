@@ -274,8 +274,10 @@ def main() -> None:
       f"train / {split['splits']['val']['n_patches_canonical']} val / "
       f"{split['splits']['test']['n_patches_canonical']} test. Train is enlarged to "
       f"{split['splits']['train']['n_patches']} via stride-"
-      f"{split.get('train_overlap_stride_px')} overlapping patches; still small, so "
-      f"strong augmentation is used and widening the AOI stays an option.")
+      f"{split.get('train_overlap_stride_px')} overlapping crops kept only where "
+      f"the whole 256 px footprint lies in train blocks (a 2026-08 leakage audit "
+      f"tightened this rule; see docs/phase7_notes.md). Still small, so strong "
+      f"augmentation is used and widening the AOI stays an option.")
     A(f"- **Extreme class imbalance.** Positive rate ~0.27-0.44% of valid pixels. "
       f"Needs Dice/Tversky + weighted BCE and threshold tuning; pixel accuracy "
       f"will be near-trivial and is reported only for completeness.")

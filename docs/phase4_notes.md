@@ -1,5 +1,10 @@
 # Phase 4 - Attention U-Net + MobileNetV2
 
+> **Numbers below are the post-leakage-audit re-run** (see the audit section in
+> `docs/phase7_notes.md`). Pre-audit figures (best val Dice: baseline 0.317 /
+> attention 0.323; test IoU: baseline 0.196 / attention 0.168; delta -0.028)
+> are preserved in the before/after table there and in git history (`c9947eb`).
+
 ## What was built
 
 - [`src/models/attention_unet.py`](../src/models/attention_unet.py) -
@@ -14,8 +19,7 @@
   architecture differs.
 - [`src/eval/compare.py`](../src/eval/compare.py) - baseline-vs-proposed table,
   delta, John & Zhang (2022) reference block, side-by-side qualitative figure.
-- Threshold sweep widened to `[0.10, 0.98, 0.02]` and **both** models
-  re-evaluated on it, so neither operating point is clipped.
+- Threshold sweep `[0.10, 0.98, 0.02]`; both models evaluated on it.
 
 ## Training run (real, identical schedule to Phase 3)
 
@@ -23,20 +27,24 @@
 |---|---|---|
 | Params | 7,764,481 | 6,703,809 |
 | Epochs / schedule | 80, Adam 3e-4 cosine, batch 8, AMP, Dice+BCE pos_weight 40 | same |
-| Train time (RTX 3050) | 23.9 min | 24.8 min |
-| Final train loss | 0.714 | 0.966 |
-| **Best val Dice** | 0.3165 @ e54 | **0.3232 @ e63** |
+| Train time (RTX 3050) | 23.7 min | 22.4 min |
+| Final train loss | 0.838 | 1.019 |
+| **Best val Dice** | 0.2453 @ e8 | 0.2458 @ e36 |
+
+Validation Dice is a **statistical dead heat** (0.0005 apart) and neither
+model shows a sustained learning curve on the leak-free split.
 
 ## Test-set comparison (held-out 18 patches, val-tuned threshold)
 
 | Metric | Baseline U-Net | Attn U-Net + MNv2 | Delta (proposed - baseline) |
 |---|---|---|---|
-| Operating threshold | 0.92 | 0.94 | |
-| **IoU** | **0.1955** | 0.1677 | **-0.0278** |
-| **Dice / F1** | **0.3270** | 0.2872 | **-0.0398** |
-| Pixel accuracy | 0.9940 | 0.9946 | +0.0006 |
-| Precision | 0.3232 | 0.3400 | +0.0168 |
-| Recall | 0.3309 | 0.2486 | -0.0823 |
+| Operating threshold | 0.88 | 0.78 | |
+| **IoU** | **0.1611** | 0.0807 | **-0.0804** |
+| **Dice / F1** | **0.2775** | 0.1493 | **-0.1282** |
+| Pixel accuracy | 0.9944 | 0.9914 | -0.0029 |
+| Precision | 0.3178 | 0.1325 | -0.1853 |
+| Recall | 0.2463 | 0.1711 | -0.0752 |
+| Confusion (px) | tp 1268 / fp 2722 / fn 3881 | tp 881 / fp 5769 / fn 4268 | |
 
 Files: `results/metrics/attention_unet.json`,
 `results/metrics/phase4_comparison.{json,md}`,
@@ -45,31 +53,47 @@ Files: `results/metrics/attention_unet.json`,
 
 ## Honest read - the core result of this phase
 
-**Under an identical training schedule, the Attention U-Net + MobileNetV2 did
-not improve on the plain U-Net baseline.** It is marginally ahead on
-validation (Dice +0.007) but behind on test (IoU -0.028, Dice -0.040), with a
-precision/recall trade: it is slightly more precise (+0.017) and notably less
-sensitive (recall -0.082), predicting fewer, higher-confidence blobs.
+**Under an identical training schedule, the Attention U-Net + MobileNetV2 is
+clearly worse than the plain U-Net on the held-out test set** (IoU 0.081 vs
+0.161, Dice 0.149 vs 0.278), losing on every metric except pixel accuracy. On
+the leak-contaminated first run the two models looked close (delta IoU -0.028);
+removing the leak roughly tripled the gap (delta IoU -0.080), i.e. the leak had
+masked the attention model's poorer generalisation. Contributing factors, none
+of them a bug:
 
-The val and test verdicts disagree, and both splits have only 16 / 18 patches,
-so the honest conclusion is **no measurable architecture benefit in this
-setup** rather than a real regression. Contributing factors, none of them a bug:
-
-1. **Tiny dataset vs a pretrained RGB encoder.** MobileNetV2's ImageNet
-   features are natural-RGB priors; the input here is an 8-band z-scored
-   reflectance stack, far from that distribution, and 304 augmented 256x256
-   patches is not enough to re-fit the encoder.
+1. **Pretrained RGB encoder vs an 8-band reflectance stack.** MobileNetV2's
+   ImageNet features are natural-RGB priors; the input here is an 8-band
+   z-scored reflectance stack, far from that distribution, and 261 augmented
+   256x256 patches is not enough to re-fit the encoder. The attention model
+   overfits harder (final train loss 1.02 with far more false positives on
+   test: fp 5769 vs the baseline's 2722).
 2. **Fair-comparison constraint.** John & Zhang tuned learning rate and epochs
    per model (Attn U-Net LR 5e-4 / 50-60 ep; U-Net LR 1e-4 / 20-30 ep). We
    deliberately hold the schedule identical, which gives a clean architecture
    ablation but does not let the attention model use its own optimum.
-3. **Task hardness dominates.** With ~0.3% positive prevalence and coarse 30 m
-   labels, both models sit near an IoU ceiling around 0.2 (see Phase 3 notes),
-   where a skip-attention refinement has little room to help.
+3. **Task hardness dominates.** With ~0.3% positive prevalence, coarse 30 m
+   labels and a 16-patch val set, both models overfit; a skip-attention
+   refinement plus a mismatched pretrained encoder has no room to help.
 
 This is consistent with the project's stated positioning: the architecture is
 **not** the contribution; the integrated raw-imagery -> hectares -> tCO2
 pipeline and the carbon regression upgrade are.
+
+## Model carried into Phase 5 - selection rationale
+
+Validation marginally preferred the attention model (Dice 0.2458 vs 0.2453);
+the held-out test set preferred the baseline decisively (IoU 0.161 vs 0.081).
+**Both differences are within the noise of a 16-validation / 18-test-patch
+split**, and choosing on the test set would be selection on the held-out data.
+The plain U-Net is carried forward for reasons **independent of test
+performance**:
+
+- simpler architecture (no pretrained encoder, no attention gates);
+- no pretrained-RGB-encoder distribution mismatch against the 8-band stack;
+- fewer moving parts for the region-wide inference in Phase 5.
+
+Both models' test numbers are reported side by side above and in
+`results/metrics/phase4_comparison.md`.
 
 ## Comparison vs. John & Zhang (2022)
 
@@ -81,10 +105,9 @@ Their reported **test** numbers (`docs/refs/john_zhang_2022.md`):
 | 4-band Amazon | 0.9199 / 0.9581 | 0.8883 / 0.9399 |
 | 4-band Atlantic Forest | 0.9028 / 0.9550 | 0.8888 / 0.9522 |
 
-This study (Wayanad, test): Attn U-Net IoU 0.168 / F1 0.287; U-Net IoU 0.196 /
-F1 0.327 - roughly a factor of 3-5 lower on IoU/F1. That gap is expected and is
-**not** a like-for-like failure, because the two studies solve different
-problems:
+This study (Wayanad, test): Attn U-Net IoU 0.081 / F1 0.149; U-Net IoU 0.161 /
+F1 0.278 - far lower. That gap is expected and is **not** a like-for-like
+failure, because the two studies solve different problems:
 
 - **Task.** They segment a deforestation mask from a *single* image where the
   clearing is already visible; we detect *new* loss between two dated
@@ -96,13 +119,12 @@ problems:
   imperfectly aligned).
 - **Landscape.** Amazon / Atlantic Forest large clear-cuts vs. Western Ghats
   fragmented smallholder and plantation loss (smaller, fainter objects).
-- **Their Attn-vs-U-Net delta is also small** (F1 +0.002 / +0.018 / +0.003),
-  so even in their favourable setting the attention gate is a minor refinement,
-  not a step change - consistent with what we see here.
+- **Their Attn-vs-U-Net delta is also small** (F1 +0.002 / +0.018 / +0.003), so
+  even in their favourable setting the attention gate is a minor refinement,
+  not a step change.
 
 ## Needed before Phase 5
 
-Nothing external. Phase 5 = run the better model (the plain U-Net baseline, by
-test IoU/Dice) over the study region, isolate newly-deforested pixels, convert
-to hectares with the 10 m GSD, and produce the deforestation map + hectares
-figure.
+Nothing external. Phase 5 = run the plain U-Net baseline over the study region,
+isolate newly-deforested pixels, convert to hectares with the 10 m GSD, and
+produce the deforestation map + hectares figure.

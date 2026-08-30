@@ -163,7 +163,10 @@ def main() -> None:
     # ---- markdown ----
     R = summary["regions"]
     L = ["# Phase 5 - Change Detection & Area Computation\n",
-         f"Model: **{exp}** (chosen over the Attention U-Net on test IoU/Dice). "
+         f"Model: **{exp}**. Model choice is independent of test performance: "
+         f"validation was a near-tie between the two models, and the plain "
+         f"U-Net was carried forward for a simpler architecture with no "
+         f"pretrained-RGB-encoder mismatch against the 8-band stack. "
          f"One forward pass on the 8-band bi-temporal stack yields the "
          f"newly-deforested mask directly; overlapping 256 px tiles (stride 128) "
          f"are averaged, thresholded at the val-tuned **{thr:.2f}**, and masked "

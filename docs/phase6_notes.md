@@ -1,12 +1,18 @@
 # Phase 6 - Carbon Estimation Module
 
+> The regression **calibration** (anchors, coefficients, r2) is independent of
+> the train/val/test split and was **unchanged** by the 2026-08 leakage audit.
+> Only the applied CO2 totals for the *model-predicted* pixel sets changed;
+> the Hansen-GFC reference-area totals are identical before and after. See the
+> audit section in `docs/phase7_notes.md`.
+
 ## What was built
 
 - [`src/carbon/ndvi.py`](../src/carbon/ndvi.py) - NDVI, and the **3-bin
   baseline** (sparse/moderate/dense -> 100/150/200 tC/ha). Explicitly labelled
   *this study's assumed classification scheme* - **not** attributed to IPCC.
   NDVI cut points are the forest tercile boundaries of the Year-T composite
-  (0.639 / 0.726).
+  (0.644 / 0.734).
 - [`src/carbon/regression_model.py`](../src/carbon/regression_model.py) - the
   **contribution**: an NDVI -> continuous aboveground-carbon-density regression.
   Two fits, `linear` and `exponential` (primary). Calibrated on **8
@@ -42,30 +48,36 @@ percentile of this study's own Year-T composite:
   monotone and non-negative by construction.
 - r2 is curve fit on 8 points, **not** held-out accuracy - stated, not hidden.
 
-## Results - tonnes CO2 from 2019-2020 forest loss
+## Results - tonnes CO2 from 2019-2020 forest loss (post-audit)
 
-| Pixel set | Area (ha) | 3-bin | reg-linear | **reg-exp (primary)** |
-|---|---|---|---|---|
-| **predicted, test region** | 49.9 | 24,713 | 22,604 | **19,756** |
-| Hansen GFC, test region (ref) | 51.5 | 25,819 | 24,800 | **21,507** |
-| predicted, full region | 279.8 | 136,145 | 119,792 | 107,962 |
-| Hansen GFC, full region (ref) | 237.4 | 116,699 | 104,726 | 94,273 |
+| Pixel set | Area (ha) | 3-bin | reg-linear | **reg-exp (primary)** | mean AGC (tC/ha) |
+|---|---|---|---|---|---|
+| **predicted, test region** | 39.6 | 22,343 | 25,591 | **21,645** | 149 |
+| Hansen GFC, test region (ref) | 51.5 | 25,819 | 24,800 | **21,507** | 114 |
+| predicted, full region | 164.5 | 94,574 | 109,486 | 94,778 | 157 |
+| Hansen GFC, full region (ref) | 237.4 | 116,699 | 104,726 | 94,273 | 108 |
 
-**Headline (held-out test region, primary regression):** 49.9 ha of predicted
-new loss -> **~19,800 t CO2** (mean 108 tC/ha aboveground). Against the
-Hansen-GFC reference area for the same test region: ~21,500 t CO2 - the
-prediction is ~8% low, tracking the Phase 5 area ratio (0.97x) plus NDVI
-weighting.
+**Headline (held-out test region, primary regression):** 39.6 ha of predicted
+new loss -> **~21,600 t CO2**. This lands within ~1% of the Hansen-GFC
+reference-area figure (~21,500 t CO2), but **coincidentally**: the leak-free
+model under-predicts the cleared *area* by ~23% while over-predicting the mean
+carbon density of the pixels it flags (149 vs 114 tC/ha, favouring denser
+higher-NDVI forest), and the two errors offset. The robust, model-free result
+is the next bullet.
 
 ## Honest read
 
-- The **regression sits ~20-25% below the flat 3-bin scheme** for this
-  region's loss, because most cleared pixels are moderate-NDVI (mean 0.59) and
-  the 3-bin "moderate" constant (150 tC/ha) over-credits them; the
-  continuous curve places them near 100-110 tC/ha, closer to the moist-
-  deciduous field values.
-- This is the intended contribution: a continuous, regionally-calibrated,
-  vegetation-density-aware estimate replacing three hard-coded constants.
+- **Model-independent (3-bin vs regression on the same GFC pixels):** on the
+  full-region GFC loss the exponential regression gives 94,273 t CO2 vs
+  116,699 t from the flat 3-bin scheme - **~19% lower**, because most cleared
+  pixels are moderate-NDVI (mean 0.59) and the 3-bin "moderate" constant
+  (150 tC/ha) over-credits them; the continuous curve places them near
+  108 tC/ha, closer to the moist-deciduous field values. This is the intended
+  contribution and does not depend on the segmentation model.
+- The *model-predicted* CO2 totals now carry a density bias (mean AGC 149-157
+  vs the GFC pixels' 108-114) because the leak-free U-Net preferentially flags
+  denser forest as loss. The near-equal test-region totals are not evidence of
+  accuracy.
 - Simplifications (stated as scope): literature-calibrated not pixel-matched;
   8 anchors; aboveground carbon only; committed-emission accounting (full
   release, no regrowth credit); single sensor / region / window.

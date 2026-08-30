@@ -1,18 +1,18 @@
 # Phase 5 - Change Detection & Area Computation
 
-Model: **baseline_unet** (chosen over the Attention U-Net on test IoU/Dice). One forward pass on the 8-band bi-temporal stack yields the newly-deforested mask directly; overlapping 256 px tiles (stride 128) are averaged, thresholded at the val-tuned **0.92**, and masked to valid land.
+Model: **baseline_unet**. Model choice is independent of test performance: validation was a near-tie between the two models, and the plain U-Net was carried forward for a simpler architecture with no pretrained-RGB-encoder mismatch against the 8-band stack. One forward pass on the 8-band bi-temporal stack yields the newly-deforested mask directly; overlapping 256 px tiles (stride 128) are averaged, thresholded at the val-tuned **0.88**, and masked to valid land.
 
 Pixel -> area: 10 m GSD, 0.01 ha per pixel.
 
 | Region | GFC ref (ha) | Predicted (ha) | Pred - GFC (ha) | Pred/GFC | IoU | Dice | Precision | Recall |
 |---|---|---|---|---|---|---|---|---|
-| test_only | 51.5 | 49.9 | -1.6 | 0.969 | 0.200 | 0.333 | 0.339 | 0.328 |
-| val_only | 29.8 | 34.2 | +4.4 | 1.148 | 0.199 | 0.332 | 0.310 | 0.356 |
-| train_only | 131.7 | 173.3 | +41.6 | 1.316 | 0.390 | 0.561 | 0.494 | 0.650 |
-| canonical_all | 213.0 | 257.4 | +44.4 | 1.208 | 0.317 | 0.481 | 0.439 | 0.531 |
-| full_region | 237.4 | 279.8 | +42.5 | 1.179 | 0.313 | 0.477 | 0.441 | 0.520 |
+| test_only | 51.5 | 39.6 | -11.9 | 0.768 | 0.161 | 0.277 | 0.318 | 0.245 |
+| val_only | 29.8 | 26.0 | -3.7 | 0.874 | 0.145 | 0.254 | 0.272 | 0.238 |
+| train_only | 131.7 | 86.5 | -45.3 | 0.656 | 0.100 | 0.182 | 0.230 | 0.151 |
+| canonical_all | 213.0 | 152.0 | -60.9 | 0.714 | 0.122 | 0.217 | 0.260 | 0.186 |
+| full_region | 237.4 | 164.5 | -72.8 | 0.693 | 0.125 | 0.222 | 0.271 | 0.188 |
 
-**Headline (held-out test region):** predicted **49.9 ha** vs Hansen GFC **51.5 ha** (0.97x; -1.6 ha), pixel IoU 0.200.
+**Headline (held-out test region):** predicted **39.6 ha** vs Hansen GFC **51.5 ha** (0.77x; -11.9 ha), pixel IoU 0.161.
 
 `full_region` and `train_only` include pixels the model was trained on and overstate agreement; `test_only` is the honest number.
 
