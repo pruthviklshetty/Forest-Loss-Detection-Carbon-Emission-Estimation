@@ -24,6 +24,13 @@ data/processed/*
 *.pth
 *.ckpt
 
+# ...but keep the small text provenance artifacts (ground rule 2)
+!data/raw/manifest.json
+!data/masks/loss_label_summary.json
+!data/processed/index.csv
+!data/processed/split.json
+!data/processed/norm_stats.json
+
 # Results binaries (keep metrics JSON/CSV and markdown, ignore heavy figures if needed)
 results/figures/*.png
 !results/figures/.gitkeep

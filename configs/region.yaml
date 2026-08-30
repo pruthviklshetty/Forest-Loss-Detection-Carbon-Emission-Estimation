@@ -4,6 +4,12 @@
 # values anywhere else.
 # ===========================================================================
 
+earth_engine:
+  # Registered, working Earth Engine cloud project (verified in Phase 2:
+  # ee.Initialize + S2/Hansen queries succeed). The originally-created
+  # "forest-loss-detection" project would not register; this one did.
+  project: "forest-loss-ee-test"
+
 region:
   name: "Wayanad Plateau, Western Ghats, Kerala, India"
   short_id: "wayanad_wg"
@@ -91,8 +97,11 @@ bands:
 # ---------------------------------------------------------------------------
 ground_truth:
   source: "Hansen Global Forest Change"
-  gee_asset: "UMD/hansen/global_forest_change_2023_v1_11"
-  gee_asset_note: "Confirm/replace with exact version pulled in Phase 2."
+  gee_asset: "UMD/hansen/global_forest_change_2024_v1_12"
+  gee_asset_note: >
+    Confirmed available in Phase 2 (13 bands). This is the current
+    non-deprecated release; the 2023_v1_11 asset now emits a deprecation
+    warning. lossyear codes 1..24 (2001..2024); our window uses 19 & 20.
   canopy_threshold_pct: 30
   loss_year_codes: [19, 20]
   positive_class: "new forest loss between T and T+1"
@@ -102,13 +111,16 @@ ground_truth:
 # ---------------------------------------------------------------------------
 patching:
   patch_size_px: 256
-  stride_px: 256           # non-overlapping; may add overlap for train aug only
+  stride_px: 256           # non-overlapping canonical set; train-time overlap decided in Phase 3
   split_fractions: {train: 0.70, val: 0.15, test: 0.15}
   split_unit: "patch"
   split_seed: 42
+  split_block_patches: 2   # 2x2-patch (512 px) super-blocks assigned whole to one split
   split_note: >
-    Spatially blocked split preferred over random patch split to limit
-    train/test leakage from adjacent pixels; method finalised in Phase 2.
+    Spatially blocked split: patches are grouped into split_block_patches^2
+    super-blocks and whole blocks go to one split, so no test patch is
+    edge-adjacent to a train patch. Actual per-split patch counts and positive
+    rates are reported in data/processed/split.json.
 
 compute:
   local_gpu: "NVIDIA GeForce RTX 3050 Laptop 6 GB"
