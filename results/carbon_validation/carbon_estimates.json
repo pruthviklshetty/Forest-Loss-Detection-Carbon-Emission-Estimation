@@ -1,0 +1,166 @@
+{
+  "co2_per_c": 3.6666666666666665,
+  "ha_per_pixel": 0.01,
+  "three_bin": {
+    "ndvi_lo": 0.6437,
+    "ndvi_hi": 0.734,
+    "values_tC_ha": {
+      "sparse": 100.0,
+      "moderate": 150.0,
+      "dense": 200.0
+    },
+    "label": "this study's assumed classification scheme (not an IPCC table)"
+  },
+  "regression": {
+    "primary": "exponential",
+    "linear": {
+      "a": 874.1170259696239,
+      "b": -424.95308054124126,
+      "r2": 0.768931743872938,
+      "form": "AGC = a*NDVI + b, clipped at 0"
+    },
+    "exponential": {
+      "a": 6.365757629537672,
+      "b": 0.5100189902533041,
+      "r2": 0.9484637186863452,
+      "form": "AGC = exp(a*NDVI + b)"
+    },
+    "calibration_points": [
+      {
+        "class": "dry_open_forest",
+        "ndvi": 0.4462,
+        "agc_MgC_ha": 30.5,
+        "source": "padmakumar2018"
+      },
+      {
+        "class": "degraded_moist_deciduous",
+        "ndvi": 0.5825,
+        "agc_MgC_ha": 75.6,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "moist_deciduous",
+        "ndvi": 0.6665,
+        "agc_MgC_ha": 101.8,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "semi_evergreen",
+        "ndvi": 0.7191,
+        "agc_MgC_ha": 132.5,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "semi_evergreen_dense",
+        "ndvi": 0.7455,
+        "agc_MgC_ha": 171.3,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen",
+        "ndvi": 0.7752,
+        "agc_MgC_ha": 236.0,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen_dense",
+        "ndvi": 0.8192,
+        "agc_MgC_ha": 332.9,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen_oldgrowth",
+        "ndvi": 0.8381,
+        "agc_MgC_ha": 408.1,
+        "source": "kothandaraman2020"
+      }
+    ],
+    "calibration_note": "Calibrated against literature-reported regional aboveground carbon densities, NOT pixel-aligned biomass rasters. n is small (8 anchors); r2 describes curve fit, not held-out accuracy."
+  },
+  "estimates": {
+    "predicted_test": {
+      "three_bin_baseline": {
+        "tC": 6740.0,
+        "tCO2": 24713.3,
+        "mean_AGC_tC_ha": 135.1,
+        "n_px": 4989
+      },
+      "regression_linear": {
+        "tC": 6164.8,
+        "tCO2": 22604.4,
+        "mean_AGC_tC_ha": 123.6,
+        "n_px": 4989
+      },
+      "regression_exponential_primary": {
+        "tC": 5388.0,
+        "tCO2": 19756.0,
+        "mean_AGC_tC_ha": 108.0,
+        "n_px": 4989
+      },
+      "area_ha": 49.9
+    },
+    "predicted_full_region": {
+      "three_bin_baseline": {
+        "tC": 37130.5,
+        "tCO2": 136145.2,
+        "mean_AGC_tC_ha": 132.7,
+        "n_px": 27981
+      },
+      "regression_linear": {
+        "tC": 32670.6,
+        "tCO2": 119792.1,
+        "mean_AGC_tC_ha": 116.8,
+        "n_px": 27981
+      },
+      "regression_exponential_primary": {
+        "tC": 29444.1,
+        "tCO2": 107961.7,
+        "mean_AGC_tC_ha": 105.2,
+        "n_px": 27981
+      },
+      "area_ha": 279.8
+    },
+    "gfc_test": {
+      "three_bin_baseline": {
+        "tC": 7041.5,
+        "tCO2": 25818.8,
+        "mean_AGC_tC_ha": 136.8,
+        "n_px": 5149
+      },
+      "regression_linear": {
+        "tC": 6763.8,
+        "tCO2": 24800.5,
+        "mean_AGC_tC_ha": 131.4,
+        "n_px": 5149
+      },
+      "regression_exponential_primary": {
+        "tC": 5865.7,
+        "tCO2": 21507.4,
+        "mean_AGC_tC_ha": 113.9,
+        "n_px": 5149
+      },
+      "area_ha": 51.5
+    },
+    "gfc_full_region": {
+      "three_bin_baseline": {
+        "tC": 31827.0,
+        "tCO2": 116699.0,
+        "mean_AGC_tC_ha": 134.1,
+        "n_px": 23736
+      },
+      "regression_linear": {
+        "tC": 28561.7,
+        "tCO2": 104726.1,
+        "mean_AGC_tC_ha": 120.3,
+        "n_px": 23736
+      },
+      "regression_exponential_primary": {
+        "tC": 25710.7,
+        "tCO2": 94272.6,
+        "mean_AGC_tC_ha": 108.3,
+        "n_px": 23736
+      },
+      "area_ha": 237.4
+    }
+  }
+}

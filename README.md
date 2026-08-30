@@ -71,7 +71,7 @@ configs/            YAML configs per experiment
 | 3 | Baseline standard U-Net | done — test IoU 0.196, Dice 0.327 |
 | 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.168, Dice 0.287 (no gain over baseline) |
 | 5 | Change detection & area computation | done — test region 49.9 ha predicted vs 51.5 ha GFC (0.97x) |
-| 6 | Carbon estimation module | not started |
+| 6 | Carbon estimation module | done — test region ~19,800 tCO₂ (regression) vs ~24,700 (3-bin) |
 | 7 | Evaluation, validation & short paper | not started |
 
 ## Ground rules

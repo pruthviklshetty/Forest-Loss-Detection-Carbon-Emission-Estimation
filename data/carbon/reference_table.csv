@@ -1,0 +1,10 @@
+vegetation_class,ndvi_anchor_source,agb_Mg_ha,carbon_fraction_reported,agc_MgC_ha,source_key,location
+dry_open_forest,forest2000 NDVI p05,64.13,0.47,30.5,padmakumar2018,"Chinnar WLS, Kerala (S Western Ghats)"
+degraded_moist_deciduous,forest2000 NDVI p20,160.8,0.47,75.6,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+moist_deciduous,forest2000 NDVI p40,216.7,0.47,101.8,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+semi_evergreen,forest2000 NDVI p60,282.0,0.47,132.5,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+semi_evergreen_dense,forest2000 NDVI p72,364.5,0.47,171.3,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+evergreen,forest2000 NDVI p85,502.1,0.47,236.0,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+evergreen_dense,forest2000 NDVI p97,708.2,0.47,332.9,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+evergreen_oldgrowth,forest2000 NDVI p99,868.2,0.47,408.1,kothandaraman2020,"Kanyakumari WLS, Tamil Nadu (S Western Ghats)"
+semi_evergreen_crosscheck,not used for fit (corroboration only),289.4,0.50,136.0,jose2025,"Netravali WLS, Goa (Central Western Ghats)"
