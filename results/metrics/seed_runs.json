@@ -1,0 +1,219 @@
+{
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "early_stop_patience": 15,
+  "runs": {
+    "baseline_unet": [
+      {
+        "seed": 42,
+        "stop_epoch": 23,
+        "best_epoch": 8,
+        "best_val_dice": 0.24359,
+        "early_stopped": true,
+        "operating_threshold": 0.92,
+        "test_iou": 0.1648731234223243,
+        "test_dice": 0.2830748175182159,
+        "test_precision": 0.3429124067420992,
+        "test_recall": 0.24101767333458127,
+        "test_pixel_acc": 0.9946387739628288
+      },
+      {
+        "seed": 43,
+        "stop_epoch": 22,
+        "best_epoch": 7,
+        "best_val_dice": 0.25227,
+        "early_stopped": true,
+        "operating_threshold": 0.92,
+        "test_iou": 0.1696159391794246,
+        "test_dice": 0.29003698307740783,
+        "test_precision": 0.34287228404866377,
+        "test_recall": 0.25131093416192435,
+        "test_pixel_acc": 0.9945969826685525
+      },
+      {
+        "seed": 44,
+        "stop_epoch": 16,
+        "best_epoch": 1,
+        "best_val_dice": 0.25526,
+        "early_stopped": true,
+        "operating_threshold": 0.92,
+        "test_iou": 0.13957858005634954,
+        "test_dice": 0.2449652573312631,
+        "test_precision": 0.3111909036504156,
+        "test_recall": 0.20198096717805358,
+        "test_pixel_acc": 0.9945321635182462
+      }
+    ],
+    "attention_unet": [
+      {
+        "seed": 42,
+        "stop_epoch": 30,
+        "best_epoch": 15,
+        "best_val_dice": 0.23733,
+        "early_stopped": true,
+        "operating_threshold": 0.88,
+        "test_iou": 0.12808177991580194,
+        "test_dice": 0.22707889125797556,
+        "test_precision": 0.20926805305383833,
+        "test_recall": 0.2482035346668774,
+        "test_pixel_acc": 0.9925799130570494
+      },
+      {
+        "seed": 43,
+        "stop_epoch": 50,
+        "best_epoch": 35,
+        "best_val_dice": 0.2462,
+        "early_stopped": true,
+        "operating_threshold": 0.92,
+        "test_iou": 0.08637873754151834,
+        "test_dice": 0.15902140672781198,
+        "test_precision": 0.1739732348869003,
+        "test_recall": 0.14643620120408884,
+        "test_pixel_acc": 0.9931982536356286
+      },
+      {
+        "seed": 44,
+        "stop_epoch": 32,
+        "best_epoch": 17,
+        "best_val_dice": 0.22857,
+        "early_stopped": true,
+        "operating_threshold": 0.92,
+        "test_iou": 0.12486992715919472,
+        "test_dice": 0.22201665124882083,
+        "test_precision": 0.23580786026195721,
+        "test_recall": 0.20974946591567104,
+        "test_pixel_acc": 0.9935445243596329
+      }
+    ]
+  },
+  "summary": {
+    "baseline_unet": {
+      "test_iou": {
+        "mean": 0.158,
+        "sd": 0.0161,
+        "values": [
+          0.1649,
+          0.1696,
+          0.1396
+        ]
+      },
+      "test_dice": {
+        "mean": 0.2727,
+        "sd": 0.0243,
+        "values": [
+          0.2831,
+          0.29,
+          0.245
+        ]
+      },
+      "test_precision": {
+        "mean": 0.3323,
+        "sd": 0.0183,
+        "values": [
+          0.3429,
+          0.3429,
+          0.3112
+        ]
+      },
+      "test_recall": {
+        "mean": 0.2314,
+        "sd": 0.026,
+        "values": [
+          0.241,
+          0.2513,
+          0.202
+        ]
+      },
+      "best_val_dice": {
+        "mean": 0.2504,
+        "sd": 0.0061,
+        "values": [
+          0.2436,
+          0.2523,
+          0.2553
+        ]
+      },
+      "stop_epoch": [
+        23,
+        22,
+        16
+      ],
+      "best_epoch": [
+        8,
+        7,
+        1
+      ],
+      "operating_threshold": [
+        0.92,
+        0.92,
+        0.92
+      ]
+    },
+    "attention_unet": {
+      "test_iou": {
+        "mean": 0.1131,
+        "sd": 0.0232,
+        "values": [
+          0.1281,
+          0.0864,
+          0.1249
+        ]
+      },
+      "test_dice": {
+        "mean": 0.2027,
+        "sd": 0.0379,
+        "values": [
+          0.2271,
+          0.159,
+          0.222
+        ]
+      },
+      "test_precision": {
+        "mean": 0.2063,
+        "sd": 0.031,
+        "values": [
+          0.2093,
+          0.174,
+          0.2358
+        ]
+      },
+      "test_recall": {
+        "mean": 0.2015,
+        "sd": 0.0514,
+        "values": [
+          0.2482,
+          0.1464,
+          0.2097
+        ]
+      },
+      "best_val_dice": {
+        "mean": 0.2374,
+        "sd": 0.0088,
+        "values": [
+          0.2373,
+          0.2462,
+          0.2286
+        ]
+      },
+      "stop_epoch": [
+        30,
+        50,
+        32
+      ],
+      "best_epoch": [
+        15,
+        35,
+        17
+      ],
+      "operating_threshold": [
+        0.88,
+        0.92,
+        0.92
+      ]
+    },
+    "test_iou_intervals_overlap": false
+  }
+}

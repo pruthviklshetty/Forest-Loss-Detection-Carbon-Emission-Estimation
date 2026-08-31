@@ -72,12 +72,20 @@ def _validate(model, loader, device, thresholds) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
+    ap.add_argument("--seed", type=int, default=None,
+                    help="override optim/seed from the config (for multi-seed sweeps)")
+    ap.add_argument("--experiment", default=None,
+                    help="override the experiment name (checkpoint / history stem)")
     args = ap.parse_args()
     cfg = load_yaml(args.config)
+    if args.seed is not None:
+        cfg["seed"] = args.seed
+    if args.experiment:
+        cfg["experiment"] = args.experiment
     seed_everything(cfg["seed"])
     device = get_device()
     exp = cfg["experiment"]
-    print(f"experiment: {exp} | device: {device}")
+    print(f"experiment: {exp} | seed: {cfg['seed']} | device: {device}")
 
     dc = cfg["data"]
     tr, va, tl, vl = _loaders(dc)
@@ -173,7 +181,7 @@ def main() -> None:
         model.load_state_dict(state)
 
     mins = (time.time() - t_start) / 60
-    summary = {"experiment": exp, "best_epoch": best_epoch,
+    summary = {"experiment": exp, "seed": cfg["seed"], "best_epoch": best_epoch,
                "best_val_dice": round(best_dice, 5),
                "epochs_planned": oc["epochs"], "epochs_run": stopped_epoch,
                "early_stopped": bool(patience and stopped_epoch < oc["epochs"]),
