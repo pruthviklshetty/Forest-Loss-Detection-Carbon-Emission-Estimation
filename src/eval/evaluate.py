@@ -6,6 +6,18 @@ Loads results/checkpoints/<experiment>_best.pt, picks the operating threshold
 by max Dice on the validation split, then reports IoU / Dice / pixel accuracy /
 precision / recall / F1 on the held-out TEST split (at the tuned threshold and
 at 0.5). Writes results/metrics/<experiment>.json and a qualitative figure.
+
+**Tolerance IoU (secondary).** Ground truth is Hansen GFC at 30 m; predictions
+are 10 m, so every GFC loss pixel is a 3x3 block whose boundary is quantised to
+30 m and strict pixel IoU structurally under-credits a prediction that is
+correct but offset by up to a GFC cell. The tolerance IoU therefore counts the
+INTERSECTION against the ground truth dilated by one 30 m cell (a 7x7 square,
+i.e. +/-3 px at the 10 m GSD) while keeping the STRICT (undilated) UNION:
+
+    tolerance_IoU = |pred AND dilate(gt, 7x7)| / |pred OR gt|      (both masked by `valid`)
+
+It is <= 1 (numerator <= |pred| <= |union|), is always reported ALONGSIDE the
+strict IoU, and never replaces it. Strict IoU stays the primary metric.
 """
 
 from __future__ import annotations
@@ -16,6 +28,7 @@ import time
 
 import numpy as np
 import torch
+from scipy.ndimage import binary_dilation
 from torch.utils.data import DataLoader
 
 import matplotlib
@@ -42,6 +55,43 @@ def _confusions(model, loader, device, thresholds):
             conf[t] += ((pred & ta).sum().item(), (pred & ~ta).sum().item(),
                         (~pred & ta).sum().item(), (~pred & ~ta).sum().item())
     return {round(float(t), 3): metrics_from_confusion(*c.tolist()) for t, c in conf.items()}
+
+
+_DILATE_PX = 3          # one 30 m Hansen GFC cell at the 10 m GSD
+_DILATE_STRUCT = np.ones((2 * _DILATE_PX + 1, 2 * _DILATE_PX + 1), dtype=bool)
+
+
+@torch.no_grad()
+def _tolerance_iou(model, loader, device, thresholds):
+    """Return {threshold: {strict_iou, tolerance_iou, tol_inter, strict_inter, union}}.
+
+    Computed patch-by-patch in 2D so the ground truth can be spatially dilated
+    before the intersection term; the union stays strict (undilated).
+    """
+    acc = {t: {"si": 0, "ti": 0, "u": 0} for t in thresholds}
+    for img, label, valid, _ in loader:
+        img = img.to(device, non_blocking=True)
+        prob = torch.sigmoid(model(img).float()).cpu().numpy()      # (B,1,H,W)
+        lab = label.numpy().astype(bool)                            # (B,1,H,W)
+        val = valid.numpy().astype(bool)
+        for b in range(prob.shape[0]):
+            g = lab[b, 0] & val[b, 0]
+            v = val[b, 0]
+            g_dil = binary_dilation(g, structure=_DILATE_STRUCT) & v
+            for t in thresholds:
+                p = (prob[b, 0] >= t) & v
+                acc[t]["si"] += int((p & g).sum())
+                acc[t]["ti"] += int((p & g_dil).sum())
+                acc[t]["u"] += int((p | g).sum())
+    out = {}
+    for t, a in acc.items():
+        u = max(a["u"], 1)
+        out[round(float(t), 3)] = {
+            "strict_iou": a["si"] / u,
+            "tolerance_iou": a["ti"] / u,
+            "strict_inter": a["si"], "tol_inter": a["ti"], "union": a["u"],
+        }
+    return out
 
 
 @torch.no_grad()
@@ -104,6 +154,17 @@ def main() -> None:
     op_t = max(val_by_t, key=lambda t: val_by_t[t]["dice"])
     test_by_t = _confusions(model, tl, device, sorted(set(sweep) | {0.5}))
 
+    # tolerance IoU (secondary) at the operating threshold and at 0.5
+    tol = _tolerance_iou(model, tl, device, sorted({op_t, 0.5}))
+    for thr, block_key in ((op_t, "test_at_operating_threshold"), (0.5, "test_at_0.5")):
+        tb = test_by_t[thr]
+        tt = tol[round(float(thr), 3)]
+        tb["strict_iou"] = round(tb["iou"], 6)
+        tb["tolerance_iou"] = round(tt["tolerance_iou"], 6)
+        tb["tolerance_iou_note"] = (
+            "intersection vs GT dilated by one 30 m GFC cell (7x7, +/-3 px); "
+            "strict undilated union; secondary metric, strict_iou is primary")
+
     result = {
         "experiment": args.experiment,
         "checkpoint": ckpt_path.relative_to(RESULTS.parent).as_posix(),
@@ -116,6 +177,7 @@ def main() -> None:
         "n_patches": {"val": len(va), "test": len(te)},
         "operating_threshold": op_t,
         "operating_threshold_selected_on": "max val Dice",
+        "tolerance_iou_dilation_px": _DILATE_PX,
         "val_at_operating_threshold": val_by_t[op_t],
         "test_at_operating_threshold": test_by_t[op_t],
         "test_at_0.5": test_by_t[0.5],
@@ -130,7 +192,9 @@ def main() -> None:
     tm = test_by_t[op_t]
     print(f"\n=== {args.experiment}  (test, threshold {op_t}) ===")
     for k in ("iou", "dice", "pixel_acc", "precision", "recall", "f1"):
-        print(f"  {k:10s} {tm[k]:.4f}")
+        print(f"  {k:14s} {tm[k]:.4f}")
+    print(f"  strict_iou     {tm['strict_iou']:.4f}   (primary)")
+    print(f"  tolerance_iou  {tm['tolerance_iou']:.4f}   (secondary, +/-3 px GT dilation)")
     print(f"  tp={tm['tp']}  fp={tm['fp']}  fn={tm['fn']}  tn={tm['tn']}")
     print(f"\nmetrics -> {out}")
     print(f"figure  -> {fig_path}")

@@ -85,11 +85,11 @@ def _fig(base_exp: str, attn_exp: str, device: str, out, n: int = 6) -> None:
 def main() -> None:
     base = _load("baseline_unet")
     attn = _load("attention_unet")
-    keys = ("iou", "dice", "pixel_acc", "precision", "recall", "f1")
+    keys = ("iou", "tolerance_iou", "dice", "pixel_acc", "precision", "recall", "f1")
 
     bt = base["test_at_operating_threshold"]
     at = attn["test_at_operating_threshold"]
-    delta = {k: round(at[k] - bt[k], 4) for k in keys}
+    delta = {k: round(at.get(k, 0) - bt.get(k, 0), 4) for k in keys}
 
     comp = {
         "baseline": {"experiment": "baseline_unet",
@@ -121,10 +121,14 @@ def main() -> None:
         A("| Metric | U-Net (baseline) | Attn U-Net + MNv2 |")
         A("|---|---|---|")
         sb, sa = sr["summary"]["baseline_unet"], sr["summary"]["attention_unet"]
-        for k, lbl in (("test_iou", "test IoU"), ("test_dice", "test Dice"),
+        for k, lbl in (("test_iou", "**test IoU (strict, primary)**"),
+                       ("test_tolerance_iou", "test IoU (+/-3 px tolerance, secondary)"),
+                       ("test_dice", "test Dice"),
                        ("test_precision", "test precision"),
                        ("test_recall", "test recall"),
                        ("best_val_dice", "best val Dice")):
+            if k not in sb:
+                continue
             A(f"| {lbl} | {sb[k]['mean']:.3f} +/- {sb[k]['sd']:.3f} | "
               f"{sa[k]['mean']:.3f} +/- {sa[k]['sd']:.3f} |")
         ov = sr["summary"].get("test_iou_intervals_overlap")

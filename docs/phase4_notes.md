@@ -31,19 +31,23 @@
 
 | Metric | Baseline U-Net | Attn U-Net + MNv2 | Delta (mean) |
 |---|---|---|---|
-| **test IoU** | **0.158 +/- 0.016** | 0.113 +/- 0.023 | **-0.045** |
+| **test IoU (strict, primary)** | **0.158 +/- 0.016** | 0.113 +/- 0.023 | **-0.045** |
+| test IoU (+/-3 px tolerance, secondary) | 0.248 +/- 0.018 | 0.199 +/- 0.037 | -0.049 |
 | **test Dice / F1** | **0.273 +/- 0.024** | 0.203 +/- 0.038 | -0.070 |
 | test precision | 0.332 +/- 0.018 | 0.206 +/- 0.031 | -0.126 |
 | test recall | 0.231 +/- 0.026 | 0.202 +/- 0.052 | -0.029 |
 
-Per-seed test IoU: U-Net **0.165 / 0.170 / 0.140**, Attn **0.128 / 0.086 /
-0.125**.
+Per-seed strict test IoU: U-Net **0.165 / 0.170 / 0.139**, Attn **0.128 / 0.087
+/ 0.125**. Tolerance IoU (GT dilated by one 30 m GFC cell, +/-3 px; strict
+union; secondary, never replaces strict): U-Net 0.255 / 0.262 / 0.227, Attn
+0.222 / 0.156 / 0.218.
 
-**Interval-overlap test.** Mean +/- 1 sd: U-Net [0.142, 0.174], Attn
-[0.090, 0.136]. **The intervals do not overlap**, so the plain U-Net's
-advantage is **supported** at that criterion. Caveat: n = 3 per group and
-+/-1 sd is a lenient bar; a Welch t-test on the six test-IoU values gives
-t = 2.75, p ~ 0.06 - probably real, not established at p < 0.05.
+**Interval-overlap test (strict IoU).** Mean +/- 1 sd: U-Net [0.142, 0.174],
+Attn [0.090, 0.136]. **The intervals do not overlap**, so the plain U-Net's
+advantage is **supported** at that criterion (it also holds on tolerance IoU).
+Caveat: n = 3 per group and +/-1 sd is a lenient bar; a Welch t-test on the six
+strict test-IoU values gives t = 2.75, p ~ 0.06 - probably real, not
+established at p < 0.05.
 
 Files: `results/metrics/seed_runs.json`, `results/metrics/attention_unet_s*.json`,
 `results/metrics/phase4_comparison.{json,md}`,

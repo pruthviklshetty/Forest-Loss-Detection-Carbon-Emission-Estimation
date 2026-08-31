@@ -11,6 +11,10 @@
 
 - **Final metrics** consolidated from `results/metrics/seed_runs.json`,
   the per-seed `*_s*.json`, `results/deforestation/`, `results/carbon_validation/`.
+- **Tolerance IoU** added to `src/eval/evaluate.py` as a secondary metric
+  (intersection vs GFC GT dilated one 30 m cell / +/-3 px, strict undilated
+  union) and backfilled across all 6 seed runs; strict IoU stays primary and
+  the two are always reported together.
 - **Qualitative figures** (>= 5 test patches):
   `phase3_baseline_unet_examples.png`, `phase4_compare_examples.png`,
   `phase5_deforestation_map.png`, `phase6_carbon_calibration.png`.
@@ -27,16 +31,19 @@
 
 | Metric | U-Net (baseline) | Attn U-Net + MNv2 |
 |---|---|---|
-| test IoU | **0.158 +/- 0.016** | 0.113 +/- 0.023 |
+| **test IoU (strict, primary)** | **0.158 +/- 0.016** | 0.113 +/- 0.023 |
+| test IoU (+/-3 px tolerance, secondary) | 0.248 +/- 0.018 | 0.199 +/- 0.037 |
 | test Dice / F1 | 0.273 +/- 0.024 | 0.203 +/- 0.038 |
 | test precision | 0.332 +/- 0.018 | 0.206 +/- 0.031 |
 | test recall | 0.231 +/- 0.026 | 0.202 +/- 0.052 |
 | best val Dice | 0.250 +/- 0.006 | 0.237 +/- 0.009 |
 
-Per-seed test IoU: U-Net 0.165 / 0.170 / 0.140; Attn 0.128 / 0.086 / 0.125.
-Mean +/- 1 sd intervals: U-Net [0.142, 0.174], Attn [0.090, 0.136] -
-**do not overlap** -> U-Net advantage **supported** at that criterion
-(Welch t = 2.75, p ~ 0.06; n = 3).
+Per-seed strict test IoU: U-Net 0.165 / 0.170 / 0.139; Attn 0.128 / 0.087 /
+0.125. Mean +/- 1 sd strict intervals: U-Net [0.142, 0.174], Attn
+[0.090, 0.136] - **do not overlap** -> U-Net advantage **supported** at that
+criterion (Welch t = 2.75, p ~ 0.06; n = 3). Tolerance IoU (GT dilated one
+30 m GFC cell / +/-3 px; strict union; secondary, never replaces strict) is
+0.248 +/- 0.018 vs 0.199 +/- 0.037 - same ordering, non-overlapping.
 
 ### Pipeline - carry-forward U-Net (seed 43, op threshold 0.92)
 
@@ -106,9 +113,10 @@ stopping, otherwise byte-identical configs; `scripts/aggregate_seeds.py` ->
 | Train patches | 304 (76 + 228 ov) | 261 (76 + 185 ov) | 261 |
 | Val/test w/ train pixels | 8/16, 9/18 | 0/16, 0/18 | 0/16, 0/18 |
 | U-Net best val Dice | 0.317 | 0.245 | 0.250 +/- 0.006 |
-| U-Net test IoU / Dice | 0.196 / 0.327 | 0.161 / 0.278 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
-| Attn U-Net test IoU / Dice | 0.168 / 0.287 | 0.081 / 0.149 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
-| Proposed - baseline test IoU | -0.028 | -0.080 | -0.045 (intervals non-overlapping) |
+| U-Net test IoU (strict) / Dice | 0.196 / 0.327 | 0.161 / 0.278 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
+| U-Net test IoU (+/-3 px tolerance) | not computed | not computed | 0.248 +/- 0.018 |
+| Attn U-Net test IoU (strict) / Dice | 0.168 / 0.287 | 0.081 / 0.149 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
+| Proposed - baseline strict test IoU | -0.028 | -0.080 | -0.045 (intervals non-overlapping) |
 | Predicted test area vs GFC | 49.9 ha (0.97x) | 39.6 ha (0.77x) | **37.3 ha (0.73x)** |
 | Predicted full-region area vs GFC | 279.8 ha (1.18x) | 164.5 ha (0.69x) | 165.7 ha (0.70x) |
 | Predicted test CO2 (primary reg.) | 19,756 t | 21,645 t | **17,918 t** |

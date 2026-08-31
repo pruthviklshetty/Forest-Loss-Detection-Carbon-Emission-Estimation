@@ -23,11 +23,12 @@ converted to hectares with the 10 m ground sample distance, and each cleared
 pixel's pre-clearing NDVI is mapped to an aboveground carbon density with (i) a
 coarse 3-bin baseline and (ii) a continuous regression calibrated against
 published Western Ghats field-inventory carbon densities. Across 3 seeds the
-plain U-Net reaches **test IoU 0.158 +/- 0.016 / Dice 0.273 +/- 0.024**; the
-attention model is worse under the shared schedule (**IoU 0.113 +/- 0.023 /
-Dice 0.203 +/- 0.038**). The two models' test-IoU mean +/- 1 sd intervals do
-not overlap, so the plain U-Net's advantage is supported at that (lenient,
-n=3) criterion. On the carry-forward checkpoint the pipeline **under-predicts
+plain U-Net reaches **strict test IoU 0.158 +/- 0.016 / Dice 0.273 +/- 0.024**
+(tolerance IoU, GT dilated by one 30 m GFC cell: 0.248 +/- 0.018); the
+attention model is worse under the shared schedule (**strict IoU 0.113 +/-
+0.023 / Dice 0.203 +/- 0.038**). The two models' strict test-IoU mean +/- 1 sd
+intervals do not overlap, so the plain U-Net's advantage is supported at that
+(lenient, n=3) criterion. On the carry-forward checkpoint the pipeline **under-predicts
 the held-out test area by ~27%** (37.3 ha vs a 51.5 ha GFC reference) - closer
 to correct than the ~0.17 pixel IoU alone suggests, but not a near-match. The
 primary regression yields ~17,900 t CO2 for the predicted test-region loss
@@ -230,7 +231,8 @@ gives the seed-variance analysis.
 | Metric | U-Net (baseline) | Attn U-Net + MNv2 |
 |---|---|---|
 | Params | 7.76 M | 6.70 M |
-| **test IoU** | **0.158 +/- 0.016** | **0.113 +/- 0.023** |
+| **test IoU (strict, primary)** | **0.158 +/- 0.016** | **0.113 +/- 0.023** |
+| test IoU (+/-3 px tolerance, secondary) | 0.248 +/- 0.018 | 0.199 +/- 0.037 |
 | **test Dice / F1** | **0.273 +/- 0.024** | **0.203 +/- 0.038** |
 | test precision | 0.332 +/- 0.018 | 0.206 +/- 0.031 |
 | test recall | 0.231 +/- 0.026 | 0.202 +/- 0.052 |
@@ -239,11 +241,19 @@ gives the seed-variance analysis.
 | stop epoch / best epoch (per seed) | 23/8, 22/7, 16/1 | 30/15, 50/35, 32/17 |
 
 Pixel accuracy is ~0.99 for both and uninformative (99.6% of valid pixels are
-negative); IoU and Dice are the operative metrics. **The two models' test-IoU
-mean +/- 1 sd intervals - U-Net [0.142, 0.174], Attn [0.090, 0.136] - do not
-overlap**, so the plain U-Net's advantage is supported at that criterion (n=3
-per group; a Welch t-test on the six values gives t = 2.75, p ~ 0.06 -
-suggestive, not conclusive; Section 5.7).
+negative); strict IoU and Dice are the operative metrics. **The two models'
+strict test-IoU mean +/- 1 sd intervals - U-Net [0.142, 0.174], Attn
+[0.090, 0.136] - do not overlap**, so the plain U-Net's advantage is supported
+at that criterion (n=3 per group; a Welch t-test on the six values gives
+t = 2.75, p ~ 0.06 - suggestive, not conclusive; Section 5.7).
+
+**Tolerance IoU** (secondary; `src/eval/evaluate.py`) counts the intersection
+against the ground truth dilated by one 30 m Hansen GFC cell (a 7x7 square,
++/-3 px at the 10 m GSD) while keeping the strict undilated union, since GFC's
+30 m label boundary structurally penalises a prediction that is correct but
+offset by less than a GFC cell. It raises both models by ~0.09 (U-Net
+0.158 -> 0.248, Attn 0.113 -> 0.199) and preserves the ordering and the
+non-overlap. It never replaces strict IoU.
 
 Neither model shows convincing learning: best validation Dice is reached at
 epochs 1-8 (U-Net) / 15-35 (Attn) and never improves after, while training loss
@@ -358,9 +368,10 @@ sd (segmentation) and the seed-43 carry-forward checkpoint (area / CO2).
 | Val/test patches with train pixels | 8/16 val, 9/18 test | 0/16, 0/18 |
 | U-Net best val Dice | 0.317 | 0.250 +/- 0.006 |
 | Attn U-Net best val Dice | 0.323 | 0.237 +/- 0.009 |
-| U-Net test IoU / Dice | 0.196 / 0.327 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
-| Attn U-Net test IoU / Dice | 0.168 / 0.287 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
-| Proposed - baseline test IoU | -0.028 | -0.045 (mean); intervals non-overlapping |
+| U-Net test IoU (strict) / Dice | 0.196 / 0.327 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
+| U-Net test IoU (+/-3 px tolerance) | not computed | 0.248 +/- 0.018 |
+| Attn U-Net test IoU (strict) / Dice | 0.168 / 0.287 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
+| Proposed - baseline strict test IoU | -0.028 | -0.045 (mean); intervals non-overlapping |
 | Predicted test area vs GFC | 49.9 ha (0.97x) | 37.3 ha (0.73x) |
 | Predicted full-region area vs GFC | 279.8 ha (1.18x) | 165.7 ha (0.70x) |
 | Predicted test CO2 (primary reg.) | 19,756 t | 17,918 t |
@@ -381,19 +392,20 @@ and Section 5.6's own numbers showed run-to-run test-IoU swings of ~0.03. Each
 model was therefore trained under 3 seeds (42, 43, 44), early stopping,
 otherwise byte-identical configs.
 
-| | test IoU (per seed) | mean +/- sd |
-|---|---|---|
-| U-Net | 0.165, 0.170, 0.140 | 0.158 +/- 0.016 |
-| Attn U-Net | 0.128, 0.086, 0.125 | 0.113 +/- 0.023 |
+| | strict test IoU (per seed) | strict mean +/- sd | tolerance mean +/- sd |
+|---|---|---|---|
+| U-Net | 0.165, 0.170, 0.139 | 0.158 +/- 0.016 | 0.248 +/- 0.018 |
+| Attn U-Net | 0.128, 0.087, 0.125 | 0.113 +/- 0.023 | 0.199 +/- 0.037 |
 
-- **Run-to-run seed sd (0.016-0.023 on test IoU) is comparable in magnitude to
-  the mean U-Net - Attn difference (0.045).** Any single-run comparison of
-  these two models is therefore unfalsifiable, which is why headline metrics
-  are reported as mean +/- sd.
-- The mean +/- 1 sd test-IoU intervals do **not** overlap, so the U-Net's
-  advantage is **supported** at that criterion. It is a lenient bar: with n = 3
-  a Welch t-test gives t = 2.75, p ~ 0.06 - the difference is probably real but
-  not established at p < 0.05.
+- **Run-to-run seed sd (0.016-0.023 on strict test IoU) is comparable in
+  magnitude to the mean U-Net - Attn difference (0.045).** Any single-run
+  comparison of these two models is therefore unfalsifiable, which is why
+  headline metrics are reported as mean +/- sd.
+- The mean +/- 1 sd strict test-IoU intervals do **not** overlap, so the
+  U-Net's advantage is **supported** at that criterion (and it also holds on
+  the tolerance IoU: 0.248 +/- 0.018 vs 0.199 +/- 0.037). It is a lenient bar:
+  with n = 3 a Welch t-test on strict IoU gives t = 2.75, p ~ 0.06 - the
+  difference is probably real but not established at p < 0.05.
 - **Early stopping confirmed rather than resolved the overfitting.** Best
   validation Dice lands at epoch 1, 7 and 8 for the three U-Net seeds and 15,
   17 and 35 for the attention seeds - always early, regardless of the 80-epoch
@@ -428,14 +440,16 @@ discovered afterward:
   comparison rests on non-overlapping +/-1 sd intervals (a Welch t gives
   p ~ 0.06), not a single run.
 - **Coarse labels.** Hansen GFC is a 30 m annual product used on a 10 m grid;
-  it bounds achievable IoU well below values reported for hand-digitised
-  benchmarks.
+  it bounds achievable strict IoU well below values reported for hand-digitised
+  benchmarks. The secondary tolerance IoU (Section 5.1) quantifies part of this
+  penalty - it lifts the U-Net from 0.16 to 0.25 - but strict IoU stays the
+  headline.
 
 The pipeline's honest value after the audit and the seed analysis is narrower
-than the first draft implied: with a per-pixel IoU near 0.16 it produces an
-**aggregate area estimate ~25-30% low** and a **CO2 total ~17% below the
-GFC-reference figure**, with the CO2 error smaller than the area error only
-because two biases partly offset. What is solid, and independent of the
+than the first draft implied: with a strict per-pixel IoU near 0.16 (tolerance
+~0.25) it produces an **aggregate area estimate ~25-30% low** and a **CO2 total
+~17% below the GFC-reference figure**, with the CO2 error smaller than the area
+error only because two biases partly offset. What is solid, and independent of the
 segmentation model and the seed, is (a) the 3-bin -> regression carbon upgrade,
 which cuts the region-wide CO2 estimate by ~19% toward the moist-deciduous
 field range, (b) the GFC-referenced emission factor being a sensible ~60% of

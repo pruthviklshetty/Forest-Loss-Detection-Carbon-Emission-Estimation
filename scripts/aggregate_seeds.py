@@ -21,7 +21,8 @@ MET = REPO / "results" / "metrics"
 SEEDS = [42, 43, 44]
 MODELS = {"baseline_unet": "U-Net (baseline)",
           "attention_unet": "Attn U-Net + MNv2"}
-FIELDS = ["iou", "dice", "precision", "recall"]
+# strict "iou" is primary; "tolerance_iou" is the secondary +/-3 px metric
+FIELDS = ["iou", "tolerance_iou", "dice", "precision", "recall"]
 
 
 def _load(stem: str, seed: int) -> dict:
@@ -35,7 +36,9 @@ def _load(stem: str, seed: int) -> dict:
         "best_val_dice": hi["best_val_dice"],
         "early_stopped": hi["early_stopped"],
         "operating_threshold": ev["operating_threshold"],
-        "test_iou": t["iou"], "test_dice": t["dice"],
+        "test_iou": t["iou"],
+        "test_tolerance_iou": t.get("tolerance_iou"),
+        "test_dice": t["dice"],
         "test_precision": t["precision"], "test_recall": t["recall"],
         "test_pixel_acc": t["pixel_acc"],
     }
@@ -69,7 +72,7 @@ def main() -> None:
 
     print("Per-seed test metrics (operating threshold tuned on val):\n")
     hdr = f"{'model':22s} {'seed':>4s} {'stopE':>5s} {'bestE':>5s} {'thr':>5s} " \
-          f"{'valDice':>8s} {'IoU':>7s} {'Dice':>7s} {'P':>6s} {'R':>6s}"
+          f"{'valDice':>8s} {'IoU':>7s} {'tolIoU':>7s} {'Dice':>7s} {'P':>6s} {'R':>6s}"
     print(hdr)
     print("-" * len(hdr))
     for stem, label in MODELS.items():
@@ -77,21 +80,23 @@ def main() -> None:
             print(f"{label:22s} {r['seed']:>4d} {r['stop_epoch']:>5d} "
                   f"{r['best_epoch']:>5d} {r['operating_threshold']:>5.2f} "
                   f"{r['best_val_dice']:>8.4f} {r['test_iou']:>7.4f} "
+                  f"{(r['test_tolerance_iou'] or 0):>7.4f} "
                   f"{r['test_dice']:>7.4f} {r['test_precision']:>6.3f} "
                   f"{r['test_recall']:>6.3f}")
         print()
 
-    print("Mean +/- sd across seeds:\n")
-    print(f"{'model':22s} {'IoU':>16s} {'Dice':>16s} {'P':>16s} {'R':>16s} {'valDice':>16s}")
+    print("Mean +/- sd across seeds  (strict IoU is primary; tol IoU is +/-3 px, secondary):\n")
+    print(f"{'model':22s} {'strict IoU':>16s} {'tol IoU':>16s} {'Dice':>16s} "
+          f"{'P':>16s} {'R':>16s} {'valDice':>16s}")
     for stem, label in MODELS.items():
         a = out["summary"][stem]
         def cell(k):
             return f"{a[k]['mean']:.3f} +/- {a[k]['sd']:.3f}"
-        print(f"{label:22s} {cell('test_iou'):>16s} {cell('test_dice'):>16s} "
-              f"{cell('test_precision'):>16s} {cell('test_recall'):>16s} "
-              f"{cell('best_val_dice'):>16s}")
+        print(f"{label:22s} {cell('test_iou'):>16s} {cell('test_tolerance_iou'):>16s} "
+              f"{cell('test_dice'):>16s} {cell('test_precision'):>16s} "
+              f"{cell('test_recall'):>16s} {cell('best_val_dice'):>16s}")
 
-    print("\nTest-IoU interval overlap (mean +/- 1 sd):")
+    print("\nStrict test-IoU interval overlap (mean +/- 1 sd):")
     lo, hi = {}, {}
     for stem in MODELS:
         m, sd = _ms(per_model_iou[stem])

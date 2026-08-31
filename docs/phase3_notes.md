@@ -36,7 +36,8 @@ each run 8-24 min (baseline) depending on stop epoch.
 
 | Metric | value |
 |---|---|
-| test IoU | **0.158 +/- 0.016** |
+| **test IoU (strict, primary)** | **0.158 +/- 0.016** |
+| test IoU (+/-3 px tolerance, secondary) | 0.248 +/- 0.018 |
 | test Dice / F1 | **0.273 +/- 0.024** |
 | test precision | 0.332 +/- 0.018 |
 | test recall | 0.231 +/- 0.026 |
@@ -44,8 +45,15 @@ each run 8-24 min (baseline) depending on stop epoch.
 | operating threshold (per seed) | 0.92 / 0.92 / 0.92 |
 | stop epoch / best epoch (per seed) | 23/8, 22/7, 16/1 |
 
-Per-seed test IoU: **0.165 (s42), 0.170 (s43), 0.140 (s44)**. Full values in
+Per-seed strict test IoU: **0.165 (s42), 0.170 (s43), 0.139 (s44)**;
+tolerance IoU 0.255 / 0.262 / 0.227. Full values in
 `results/metrics/seed_runs.json` and the per-seed `baseline_unet_s*.json`.
+
+**Tolerance IoU** (secondary, never replaces strict): intersection counted
+against the GFC ground truth dilated by one 30 m cell (7x7, +/-3 px at 10 m
+GSD), strict undilated union - GFC's 30 m label boundary otherwise penalises a
+prediction that is correct but offset by less than a GFC cell. Definition and
+rationale in `src/eval/evaluate.py`.
 
 **Carry-forward checkpoint** (used by Phases 5-7): the **median best-val-Dice
 seed = 43** (val Dice 0.252). Selection is on validation only. Seed 43 test:
