@@ -2,36 +2,36 @@
   "baseline": {
     "experiment": "baseline_unet",
     "n_params": 7764481,
-    "operating_threshold": 0.88,
+    "operating_threshold": 0.94,
     "test": {
-      "iou": 0.1611,
-      "dice": 0.2775,
-      "pixel_acc": 0.9944,
-      "precision": 0.3178,
-      "recall": 0.2463,
-      "f1": 0.2775
+      "iou": 0.1336,
+      "dice": 0.2358,
+      "pixel_acc": 0.9945,
+      "precision": 0.3052,
+      "recall": 0.1921,
+      "f1": 0.2358
     }
   },
   "proposed": {
     "experiment": "attention_unet",
     "n_params": 6703809,
-    "operating_threshold": 0.78,
+    "operating_threshold": 0.88,
     "test": {
-      "iou": 0.0807,
-      "dice": 0.1493,
-      "pixel_acc": 0.9914,
-      "precision": 0.1325,
-      "recall": 0.1711,
-      "f1": 0.1493
+      "iou": 0.1039,
+      "dice": 0.1883,
+      "pixel_acc": 0.9938,
+      "precision": 0.2197,
+      "recall": 0.1647,
+      "f1": 0.1883
     }
   },
   "delta_proposed_minus_baseline": {
-    "iou": -0.0804,
-    "dice": -0.1282,
-    "pixel_acc": -0.0029,
-    "precision": -0.1853,
-    "recall": -0.0752,
-    "f1": -0.1282
+    "iou": -0.0297,
+    "dice": -0.0475,
+    "pixel_acc": -0.0008,
+    "precision": -0.0854,
+    "recall": -0.0274,
+    "f1": -0.0475
   },
   "john_zhang_2022_reference": {
     "RGB Amazon": {

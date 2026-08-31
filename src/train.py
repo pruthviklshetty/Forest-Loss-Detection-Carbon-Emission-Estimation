@@ -3,7 +3,11 @@
     python -m src.train --config configs/train_baseline.yaml
 
 Trains the model named in the config on the Phase 2 patches, selecting the
-checkpoint by best validation Dice. Writes:
+checkpoint by best validation Dice. If `optim.early_stop_patience` is set,
+training stops when val Dice has not improved for that many consecutive epochs
+and the best checkpoint (already on disk) is reloaded into the model. The LR
+schedule is still cosine-annealed over the full `optim.epochs`, so the epochs
+that do run are identical to a full run's first epochs. Writes:
     results/checkpoints/<experiment>_best.pt
     results/metrics/<experiment>_history.json
     results/figures/<experiment>_training_curves.png
@@ -99,8 +103,11 @@ def main() -> None:
     (RESULTS / "metrics").mkdir(parents=True, exist_ok=True)
     (RESULTS / "figures").mkdir(parents=True, exist_ok=True)
 
+    patience = oc.get("early_stop_patience")
     history = []
     best_dice, best_epoch = -1.0, -1
+    epochs_since_best = 0
+    stopped_epoch = oc["epochs"]
     t_start = time.time()
 
     for epoch in range(1, oc["epochs"] + 1):
@@ -143,17 +150,35 @@ def main() -> None:
 
         if val[best_t]["dice"] > best_dice:
             best_dice, best_epoch = val[best_t]["dice"], epoch
+            epochs_since_best = 0
             torch.save({"model_state": model.state_dict(),
                         "config": cfg, "epoch": epoch,
                         "val_threshold": best_t,
                         "val_metrics": val[best_t],
                         "n_params": n_params},
                        CKPT_DIR / f"{exp}_best.pt")
+        else:
+            epochs_since_best += 1
+
+        if patience and epochs_since_best >= patience:
+            stopped_epoch = epoch
+            print(f"  early stop at e{epoch}: no val Dice gain in {patience} "
+                  f"epochs (best {best_dice:.4f} @ e{best_epoch})")
+            break
+
+    # restore the best checkpoint into the model (it is already the one on disk)
+    if patience and (CKPT_DIR / f"{exp}_best.pt").exists():
+        state = torch.load(CKPT_DIR / f"{exp}_best.pt", map_location=device,
+                           weights_only=False)["model_state"]
+        model.load_state_dict(state)
 
     mins = (time.time() - t_start) / 60
     summary = {"experiment": exp, "best_epoch": best_epoch,
                "best_val_dice": round(best_dice, 5),
-               "epochs": oc["epochs"], "train_minutes": round(mins, 1),
+               "epochs_planned": oc["epochs"], "epochs_run": stopped_epoch,
+               "early_stopped": bool(patience and stopped_epoch < oc["epochs"]),
+               "early_stop_patience": patience,
+               "train_minutes": round(mins, 1),
                "n_params": n_params, "device": device,
                "history": history}
     (RESULTS / "metrics" / f"{exp}_history.json").write_text(

@@ -18,7 +18,8 @@ data:
   augment: true
 
 optim:
-  epochs: 80
+  epochs: 80                   # cosine T_max; upper bound if early stopping never triggers
+  early_stop_patience: 15      # stop after this many epochs with no val-Dice improvement
   lr: 0.0003
   weight_decay: 1.0e-5
   scheduler: "cosine"          # cosine annealing to 0
