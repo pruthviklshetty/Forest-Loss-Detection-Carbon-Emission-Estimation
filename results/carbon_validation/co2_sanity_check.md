@@ -16,6 +16,18 @@ the Harris et al. 2021 global forest carbon-flux model, 30% canopy threshold):
   deadwood, litter, soil) and **all gases** (CO2, CH4, N2O), as gross
   committed emissions.
 
+> **Emission-factor derivation (reconciliation).** The pre-audit draft
+> (`c9947eb`) reported ~638 t CO2e/ha, computed as (2.54 Mt / 23 yr) / (3.82
+> kha / 22 yr) = 110,400 / 173 - i.e. each total divided by a different
+> assumed year count for 2001-2023 before the ratio, which is an arithmetic
+> artifact. The direct ratio of the two published totals, 2.54 Mt / 3.82 kha
+> = **665 t CO2e/ha**, is year-count-independent and is the value used from
+> `82f6948` onward. The GFW query (Wayanad district, 2001-2023, 30% canopy)
+> and its totals (3.82 kha, 2.54 Mt CO2e) are identical between the two
+> drafts; only the per-hectare derivation was corrected. The ~60% ratio to
+> this study's ~397 t CO2/ha is essentially unchanged (397/665 = 0.60 vs the
+> old 397/638 = 0.62).
+
 Sources: globalforestwatch.org/dashboards/country/IND/17/14 ; Harris, N.L. et
 al. (2021) "Global maps of twenty-first century forest carbon fluxes",
 *Nature Climate Change* 11, 234-240.

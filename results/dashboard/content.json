@@ -1,0 +1,217 @@
+{
+  "_meta": {
+    "purpose": "Values needed by the results dashboard that are NOT present in results/metrics/*.json or results/carbon_validation/*.json. This file supplies only (a) pre-audit baselines for the before/after table, (b) leakage-audit statistics, (c) the external Global Forest Watch reference, and (d) static text from the paper. Every value is cited in _sources. VERIFY THIS FILE before the UI is built.",
+    "no_post_audit_metrics_stored": "This file contains NO post-audit (current) segmentation, area or carbon metric values. Every 'after' number the dashboard shows — segmentation mean +/- sd, area predicted/reference/ratio, carbon tCO2 — is read at build time from results/metrics/seed_runs.json, results/deforestation/baseline_unet_area_summary.json and results/carbon_validation/carbon_estimates.json. Prose notes here name no current metric values; they point to the source arrays instead.",
+    "generated_utc": "2026-08-31",
+    "verify_before_build": true
+  },
+  "header": {
+    "title": "An Integrated Pipeline for Forest-Loss Detection and Vegetation-Density-Aware Carbon-Emission Estimation from Bi-temporal Sentinel-2 Imagery",
+    "region": "Wayanad Plateau, Western Ghats, Kerala, India",
+    "bbox_wsen": [
+      76.0,
+      11.55,
+      76.28,
+      11.8
+    ],
+    "area_km2": 848,
+    "utm_epsg": 32643,
+    "gsd_m": 10,
+    "window": "Jan–Apr 2019 → Jan–Apr 2021 (dry-season Sentinel-2 composites)",
+    "positioning": "An end-to-end pipeline from two dated Sentinel-2 composites to a hectares-lost and a tonnes-CO2 figure, plus a calibrated NDVI→carbon regression that replaces a fixed 3-bin scheme. The contribution is the integrated, audited pipeline and the carbon upgrade — not a novel segmentation architecture."
+  },
+  "segmentation_context": {
+    "model": "plain U-Net (7,764,481 parameters; no attention, no pretrained encoder)",
+    "test_set": "held-out test split, 18 non-overlapping 256x256 patches",
+    "carry_forward_checkpoint": "seed 43 (median best validation Dice of seeds 42/43/44)",
+    "model_selection_rule": "The carry-forward checkpoint is the seed with the median best VALIDATION Dice. Test metrics were never used to select.",
+    "attention_note": "An Attention U-Net with an ImageNet-pretrained MobileNetV2 encoder was also trained under an identical schedule and did not improve on the plain U-Net. Per-seed figures for both models are in results/metrics/seed_runs.json. This is not an architecture comparison and no significance claim is made.",
+    "iou_note": "Strict pixel IoU is primary. Tolerance IoU dilates the Hansen GFC ground truth by one 30 m cell (7x7 window, +/-3 px at the 10 m GSD) for the intersection term while keeping the strict undilated union, because 30 m labels structurally penalise a prediction that is correct but offset by less than a GFC cell. Tolerance IoU is always shown alongside strict IoU, never instead of it."
+  },
+  "leakage_audit": {
+    "headline": "A self-run leakage audit found that 50% of validation and test patches contained training pixels; it was fixed, and the corrected metrics are lower.",
+    "mechanism": "The training split adds stride-128 overlapping 256x256 crops. Each crop was assigned to a split using only the 512 px super-block containing the crop's top-left corner. A crop offset 128 px from a block boundary extends into the neighbouring block; where that neighbour was a validation or test block, 128 px strips of held-out territory were used as training data.",
+    "found_by": "scripts/verify_no_leakage.py — a self-written check that reads only the recorded pixel origin and size of every patch from data/processed/index.csv and does independent rectangle intersection (does not reuse the split logic it audits).",
+    "fix": "build_dataset.py now keeps an overlap crop only if its ENTIRE 256x256 footprint lies inside train-assigned blocks; a crop touching any validation/test block is dropped, not reassigned. The canonical grid, block-to-split assignment, normalisation statistics and the val/test patches are byte-identical before and after (verified by hash).",
+    "before": {
+      "train_patches": 304,
+      "train_canonical": 76,
+      "train_overlap_crops": 228,
+      "val_patches_contaminated": 8,
+      "val_patches_total": 16,
+      "test_patches_contaminated": 9,
+      "test_patches_total": 18,
+      "contaminated_patch_area_pct_range": [
+        50,
+        75
+      ],
+      "verify_script_exit_code": 1
+    },
+    "after": {
+      "train_patches": 261,
+      "train_canonical": 76,
+      "train_overlap_crops": 185,
+      "val_patches_contaminated": 0,
+      "test_patches_contaminated": 0,
+      "verify_script_exit_code": 0
+    },
+    "metrics_before": {
+      "note": "Pre-audit, single training run, leaked split. Tolerance IoU and seed spread did not exist yet, so only single scalars are available.",
+      "segmentation_test": {
+        "strict_iou": 0.1955,
+        "dice": 0.327,
+        "precision": 0.3232,
+        "recall": 0.3309,
+        "operating_threshold": 0.92
+      },
+      "area_test": {
+        "predicted_ha": 49.89,
+        "gfc_reference_ha": 51.49,
+        "predicted_over_gfc": 0.969,
+        "strict_pixel_iou": 0.1999
+      },
+      "area_full_region": {
+        "predicted_ha": 279.81,
+        "gfc_reference_ha": 237.36,
+        "predicted_over_gfc": 1.179
+      },
+      "carbon_predicted_test": {
+        "area_ha": 49.9,
+        "three_bin_tCO2": 24713.3,
+        "regression_exponential_tCO2": 19756.0
+      }
+    },
+    "metrics_after_pointer": "The 'after' column of the before/after table is read live by the dashboard from results/metrics/seed_runs.json (segmentation, mean +/- sd), results/deforestation/baseline_unet_area_summary.json (area) and results/carbon_validation/carbon_estimates.json (carbon) — it is NOT stored here, to avoid a second copy that could drift.",
+    "run_count_caveat": "The pre-audit column is a SINGLE training run (commit c9947eb); the post-audit column is the MEAN +/- SD over 3 seeds (42, 43, 44). The two columns therefore differ in run count as well as in split cleanliness, so the drop from the pre-audit figures to the post-audit means is NOT entirely attributable to the leakage fix: part of it is ordinary run-to-run variation, of the order of the post-audit seed standard deviation shown in the same row. The dashboard must render this caveat alongside the before/after table."
+  },
+  "seed_variance_note": "Run-to-run spread across the 3 seeds is comparable in magnitude to the effects being measured, so headline segmentation metrics are reported as mean +/- sd across seeds 42, 43 and 44 rather than as single-run values. See results/metrics/seed_runs.json for per-seed values.",
+  "overfitting_note": "Best validation Dice is reached within the first few epochs, regardless of the 80-epoch schedule length (see the per-seed best_epoch array in results/metrics/seed_runs.json). This is a direct consequence of 261 training patches at a ~0.3% positive-pixel prevalence: there is little signal to fit before the model starts memorising.",
+  "change_detection_note": "The model under-predicts the deforested area on the held-out test region — the predicted hectares figure sits well below the Hansen GFC reference. The dashboard reads the predicted and reference hectares and their ratio live from results/deforestation/baseline_unet_area_summary.json (regions.test_only) and must display them side by side with the ratio stated. The predicted figure is not a validated area.",
+  "carbon_reference_gfw": {
+    "source": "Global Forest Watch, Wayanad district dashboard (UMD/Hansen tree-cover loss + the Harris et al. 2021 global forest carbon-flux model, 30% canopy threshold)",
+    "source_url": "https://www.globalforestwatch.org/dashboards/country/IND/17/14",
+    "period": "2001–2023 cumulative",
+    "tree_cover_loss_kha": 3.82,
+    "co2e_Mt": 2.54,
+    "implied_emission_factor_tCO2e_per_ha": 665,
+    "implied_emission_factor_derivation": "2.54 Mt CO2e / 3.82 kha = 665 t CO2e/ha, a direct ratio of the two published GFW totals for the same query. An earlier draft (commit c9947eb) reported ~638 t CO2e/ha; that figure divided each total by a different assumed year count for 2001-2023 (CO2 by 23, area by 22) before taking the ratio, which is an arithmetic artifact. The GFW totals (3.82 kha, 2.54 Mt CO2e) are unchanged between the two drafts; only the per-hectare derivation was corrected. 665 is the figure used everywhere from commit 82f6948 onward.",
+    "pools_and_gases": "all carbon pools (above- and below-ground biomass, deadwood, litter, soil) and all gases (CO2, CH4, N2O), as gross committed emissions",
+    "study_emission_factor_tCO2_per_ha": 397,
+    "study_factor_basis": "GFC reference area: regression-exponential 94,273 tCO2 over 237.4 ha; aboveground carbon and CO2 only",
+    "study_over_gfw_ratio": 0.6,
+    "scope_difference": "This study estimates aboveground carbon and CO2 only. Belowground biomass, deadwood, litter and soil carbon, and non-CO2 gases, are all excluded. That is why the study's ~397 tCO2/ha is ~60% of GFW's ~665 tCO2e/ha all-pools figure — the difference is scope, not error."
+  },
+  "carbon_calibration_label": "The NDVI→carbon regression is calibrated on 8 published Western-Ghats field-inventory aboveground-carbon anchors (Padmakumar et al. 2018; Kothandaraman et al. 2020; Jose et al. 2025 as an unfitted cross-check), NOT a pixel-aligned biomass raster. r2 describes curve fit on the 8 anchors, not held-out predictive accuracy.",
+  "limitations": [
+    "Single sensor — Sentinel-2 only; no Landsat or SAR fusion.",
+    "Single study region — one ~848 km2 tile of the Wayanad plateau.",
+    "One two-year window — Jan–Apr 2019 to Jan–Apr 2021.",
+    "261 training patches; a 16-patch validation set and an 18-patch test set.",
+    "30 m Hansen GFC labels evaluated against 10 m predictions (bounds achievable strict IoU).",
+    "Carbon regression is literature-calibrated (8 anchors), not fit to co-located biomass plots.",
+    "Aboveground carbon and CO2 only — no belowground / deadwood / litter / soil pools, no non-CO2 gases, no regrowth credit.",
+    "Committed-emission accounting; a fixed 2019–2020 window compared against GFW's 22-year average.",
+    "Run-to-run seed standard deviation on test IoU is 0.016–0.023 — hence metrics are reported as mean +/- sd."
+  ],
+  "figures": [
+    {
+      "key": "triptych",
+      "src_file": "results/figures/phase3_baseline_unet_s43_examples.png",
+      "public_name": "triptych_test_patches.jpg",
+      "caption": "Held-out test patches — Sentinel-2 T+1 false colour / Hansen GFC ground truth / predicted probability. Carry-forward U-Net (seed 43)."
+    },
+    {
+      "key": "deforestation_map",
+      "src_file": "results/figures/phase5_deforestation_map.png",
+      "public_name": "deforestation_map.jpg",
+      "caption": "Region-wide predicted forest loss (yellow) and the hit / miss / false-alarm agreement map against Hansen GFC."
+    },
+    {
+      "key": "hectares",
+      "src_file": "results/figures/phase5_hectares.png",
+      "public_name": "hectares_predicted_vs_gfc.png",
+      "caption": "Predicted vs Hansen GFC hectares lost, per split. 10 m GSD, 0.01 ha per pixel."
+    },
+    {
+      "key": "carbon_calibration",
+      "src_file": "results/figures/phase6_carbon_calibration.png",
+      "public_name": "carbon_calibration.png",
+      "caption": "NDVI → aboveground carbon density: 3-bin baseline, linear fit, and exponential fit (primary), over 8 literature anchors."
+    }
+  ],
+  "references_note": "Full 13-reference list, matching report.md. Ordered as in the paper.",
+  "references": [
+    {
+      "key": "chave_2014",
+      "cite": "Chave, J. et al. (2014). Improved allometric models to estimate the aboveground biomass of tropical trees. Global Change Biology 20(10), 3177–3190."
+    },
+    {
+      "key": "hansen_2013",
+      "cite": "Hansen, M.C. et al. (2013). High-resolution global maps of 21st-century forest cover change. Science 342(6160), 850–853."
+    },
+    {
+      "key": "harris_2021",
+      "cite": "Harris, N.L. et al. (2021). Global maps of twenty-first century forest carbon fluxes. Nature Climate Change 11, 234–240."
+    },
+    {
+      "key": "ipcc_2006",
+      "cite": "IPCC (2006). 2006 IPCC Guidelines for National Greenhouse Gas Inventories, Vol. 4 (AFOLU), Ch. 4, Table 4.3 (default carbon fraction 0.47)."
+    },
+    {
+      "key": "john_zhang_2022",
+      "cite": "John, D. & Zhang, C. (2022). An attention-based U-Net for detecting deforestation within satellite sensor imagery. International Journal of Applied Earth Observation and Geoinformation 107, 102685."
+    },
+    {
+      "key": "jose_2025",
+      "cite": "Jose, K. et al. (2025). Woody species diversity, structure, and carbon stock in a tropical semi-evergreen forest in Western Ghats, India. Environmental Research Communications 7(4), 045027."
+    },
+    {
+      "key": "kothandaraman_2020",
+      "cite": "Kothandaraman, S. et al. (2020). Ecosystem-level carbon storage and its links to diversity, structural and environmental drivers in tropical forests of Western Ghats, India. Scientific Reports 10, 13444."
+    },
+    {
+      "key": "li_2020",
+      "cite": "Li, Y., Li, M., Li, C. & Liu, Z. (2020). Forest aboveground biomass estimation using Landsat 8 and Sentinel-1A data with machine learning algorithms. Scientific Reports 10, 9952."
+    },
+    {
+      "key": "muhammad_2024",
+      "cite": "Muhammad, B. et al. (2024). Estimation of above-ground biomass in dry temperate forests using Sentinel-2 data and random forest: a case study of the Swat area of Pakistan. Frontiers in Environmental Science 12, 1448648."
+    },
+    {
+      "key": "oktay_2018",
+      "cite": "Oktay, O. et al. (2018). Attention U-Net: learning where to look for the pancreas. MIDL 2018 / arXiv:1804.03999."
+    },
+    {
+      "key": "padmakumar_2018",
+      "cite": "Padmakumar, B. et al. (2018). Tree biomass and carbon density estimation in the tropical dry forest of Southern Western Ghats, India. iForest 11(4), 534–541."
+    },
+    {
+      "key": "ronneberger_2015",
+      "cite": "Ronneberger, O., Fischer, P. & Brox, T. (2015). U-Net: convolutional networks for biomedical image segmentation. MICCAI 2015, 234–241."
+    },
+    {
+      "key": "sandler_2018",
+      "cite": "Sandler, M. et al. (2018). MobileNetV2: inverted residuals and linear bottlenecks. CVPR 2018, 4510–4520."
+    }
+  ],
+  "links": {
+    "repo": "https://github.com/pruthviklshetty/Forest-Loss-Detection-Carbon-Emission-Estimation",
+    "report_note": "report.md and report.docx are kept local to the working tree and are not committed; there is no in-repo report URL to link."
+  },
+  "_sources": {
+    "header (region, bbox, area, window, gsd, utm)": "configs/region.yaml",
+    "header.title / positioning": "report.md title and abstract",
+    "segmentation_context.*": "results/metrics/seed_runs.json; report.md sections 4.1 and 5.2; docs/phase7_notes.md",
+    "leakage_audit.mechanism / found_by / fix": "src/preprocessing/build_dataset.py (overlap_crop_all_train); scripts/verify_no_leakage.py; git commit 135c98f 'fix data leakage'",
+    "leakage_audit.before / after counts": "scripts/verify_no_leakage.py executed 2026-08-31 against the pre-fix index (git 135c98f~1:data/processed/index.csv) and the current index",
+    "leakage_audit.metrics_before": "git commit c9947eb — results/metrics/baseline_unet.json (test_at_operating_threshold), results/deforestation/baseline_unet_area_summary.json (regions), results/carbon_validation/carbon_estimates.json (estimates.predicted_test)",
+    "leakage_audit.run_count_caveat": "requested by review; states the pre/post columns differ in run count (1 run vs 3-seed mean +/- sd)",
+    "seed_variance_note / overfitting_note / change_detection_note": "results/metrics/seed_runs.json; results/deforestation/baseline_unet_area_summary.json; docs/phase7_notes.md (prose only — no current metric values stored)",
+    "carbon_reference_gfw": "results/carbon_validation/co2_sanity_check.md; Global Forest Watch Wayanad district dashboard; Harris et al. 2021",
+    "carbon_reference_gfw.implied_emission_factor_derivation": "git diff of results/carbon_validation/co2_sanity_check.md between c9947eb (~638) and 82f6948 onward (665); GFW totals identical across both",
+    "carbon_calibration_label": "results/carbon_validation/regression_coefs.json (.note); results/carbon_validation/carbon_estimates.json (.regression.calibration_note)",
+    "limitations": "report.md section 6; docs/phase7_notes.md",
+    "figures": "results/figures/ (git-ignored; web-optimised copies committed to frontend/public/)",
+    "references": "report.md References (full 13; ordering as in the paper); DOIs/venues cross-checked against docs/refs/"
+  }
+}

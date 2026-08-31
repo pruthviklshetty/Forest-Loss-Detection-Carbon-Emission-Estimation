@@ -1,0 +1,220 @@
+/* Forest Loss & Carbon — results viewer.
+   Dense, factual, closer to a scientific poster than a marketing page.
+   No gradients, no decorative animation. One accent (rust) reserved for the
+   methodological-corrections section, which is the credibility anchor. */
+
+:root {
+  --bg: #faf9f6;
+  --panel: #ffffff;
+  --ink: #1b1a17;
+  --ink-2: #4a4740;
+  --ink-3: #726d63;
+  --rule: #e2ded4;
+  --rule-2: #cfc9bb;
+  --accent: #9c3b1b;        /* rust — corrections / warnings only */
+  --accent-soft: #f4e7e1;
+  --good: #2f6b4f;          /* used sparingly, e.g. "clean / exit 0" */
+  --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+/* ---------- header ---------- */
+.site-head {
+  border-bottom: 2px solid var(--ink);
+  padding: 40px 0 22px;
+  margin-bottom: 8px;
+}
+.site-head h1 {
+  font-size: 22px;
+  line-height: 1.3;
+  margin: 0 0 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.site-head .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+.site-head .meta b { color: var(--ink); font-weight: 600; }
+.site-head .positioning {
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 70ch;
+  margin: 0;
+}
+
+/* ---------- sections ---------- */
+section { padding: 34px 0; border-bottom: 1px solid var(--rule); }
+section:last-of-type { border-bottom: none; }
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.sec-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  border: 1px solid var(--rule-2);
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex: none;
+}
+h2 { font-size: 17px; margin: 0; font-weight: 640; letter-spacing: -0.01em; }
+.sec-sub { color: var(--ink-2); font-size: 13.5px; margin: 6px 0 18px; max-width: 74ch; }
+
+p { max-width: 74ch; }
+p.note { font-size: 13.5px; color: var(--ink-2); }
+
+/* ---------- tables ---------- */
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 8px 0 4px; }
+th, td { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-weight: 600;
+  color: var(--ink-2);
+  border-bottom: 1.5px solid var(--rule-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr.total td { border-top: 1.5px solid var(--rule-2); font-weight: 600; }
+.tbl-scroll { overflow-x: auto; }
+
+/* ---------- metric blocks ---------- */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin: 14px 0;
+}
+.metric {
+  background: var(--panel);
+  padding: 12px 14px;
+}
+.metric .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
+.metric .v { font-family: var(--mono); font-size: 20px; font-variant-numeric: tabular-nums; margin-top: 3px; }
+.metric .v .sd { font-size: 13px; color: var(--ink-3); }
+.metric .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.metric.primary .v { color: var(--ink); }
+.metric.secondary { background: #fbfaf7; }
+.metric.secondary .v { color: var(--ink-2); font-size: 17px; }
+
+/* ---------- corrections section accent ---------- */
+.corrections { background: var(--accent-soft); }
+.corrections .wrap-inner { border-left: 3px solid var(--accent); padding-left: 18px; }
+.corrections h2 { color: var(--accent); }
+.corrections h3 { font-size: 14px; margin: 22px 0 6px; font-weight: 640; }
+.corrections .badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.callout {
+  border: 1px solid var(--rule-2);
+  background: var(--panel);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 12px 0;
+}
+.callout b { color: var(--ink); }
+
+/* ---------- figures ---------- */
+figure { margin: 16px 0; }
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule-2);
+  background: #fff;
+}
+figcaption { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; max-width: 74ch; }
+.fig-grid { display: grid; gap: 22px; }
+
+/* ---------- side-by-side compare (area) ---------- */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin: 14px 0;
+}
+.compare > div { background: var(--panel); padding: 14px 16px; }
+.compare .lbl { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
+.compare .big { font-family: var(--mono); font-size: 22px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.compare .ratio { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background: #fbfaf7; }
+.compare .ratio .big { color: var(--accent); }
+
+/* ---------- lists ---------- */
+ul.plain { padding-left: 18px; max-width: 74ch; }
+ul.plain li { margin: 5px 0; font-size: 13.5px; color: var(--ink-2); }
+ol.refs { padding-left: 22px; font-size: 12.5px; color: var(--ink-2); }
+ol.refs li { margin: 5px 0; }
+
+/* ---------- chart wrapper ---------- */
+.chart { margin: 16px 0 4px; }
+.chart-note { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+
+/* ---------- footer ---------- */
+.site-foot {
+  border-top: 2px solid var(--ink);
+  margin-top: 8px;
+  padding-top: 20px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.site-foot a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+.site-foot a:hover { color: var(--ink); }
+
+.pill { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--rule-2); border-radius: 3px; color: var(--ink-2); }
+.pill.ok { color: var(--good); border-color: var(--good); }
+.pill.bad { color: var(--accent); border-color: var(--accent); }
+
+.pending {
+  border: 1px dashed var(--rule-2);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+@media (max-width: 620px) {
+  .wrap { padding: 0 16px 72px; }
+  .compare { grid-template-columns: 1fr; }
+  .site-head h1 { font-size: 19px; }
+}

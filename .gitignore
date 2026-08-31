@@ -43,3 +43,8 @@ Thumbs.db
 # Paper draft and phase notes - kept local, not tracked
 /report.*
 /docs/
+
+# Frontend build artifacts (source is tracked; these are generated)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
