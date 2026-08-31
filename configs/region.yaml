@@ -1,41 +1,77 @@
 # ===========================================================================
-# Study region and bi-temporal acquisition window
-# Phase 1 deliverable. All later phases read this file; do not hard-code these
-# values anywhere else.
+# Study regions and bi-temporal acquisition window.
+# Phase 1 held one region; Phase 8 expands to four Western Ghats blocks.
+# All downstream scripts read this file via src/regions.py (load_regions) and
+# ITERATE regions. A single-region config (a bare `region:` block, no
+# `regions:` list) is still supported and is wrapped into a one-element list.
+# Do not hard-code bboxes anywhere else.
 # ===========================================================================
 
 earth_engine:
-  # Registered, working Earth Engine cloud project (verified in Phase 2:
-  # ee.Initialize + S2/Hansen queries succeed). The originally-created
-  # "forest-loss-detection" project would not register; this one did.
+  # Registered, working Earth Engine cloud project (verified in Phase 2).
   project: "forest-loss-ee-test"
+  # Optional service-account key path for headless / server use (Phase 9).
+  # Read from env EE_SERVICE_ACCOUNT_KEY if set; this value is a fallback only
+  # and must point to a git-ignored file.
+  service_account_key: null
 
-region:
-  name: "Wayanad Plateau, Western Ghats, Kerala, India"
-  short_id: "wayanad_wg"
-  country: "India"
-  admin_context: >
-    Wayanad district, Kerala, on the Deccan/Western Ghats plateau margin.
-    Mosaic of semi-evergreen and moist-deciduous forest, plantation (tea,
-    coffee, cardamom), and smallholder agriculture. Chosen for Indian
-    relevance and an active, documented forest-loss record; deforestation
-    here is more fragmented than Amazon arc-of-deforestation clearing, which
-    is noted as a scope limitation.
+# ---------------------------------------------------------------------------
+# Regions. Each: a Western Ghats moist-forest block of ~850 km2, same biome,
+# same forest types, same UTM zone (43N / EPSG:32643). Bboxes were chosen by
+# probing Hansen GFC 2019-2020 loss density first (scripts/site_probe or
+# docs/phase8_notes.md) - a block with near-zero loss adds patches but no
+# positives, which is worse than useless at ~0.3% prevalence.
+# `target_gsd_m` and the acquisition window are shared (see time_windows).
+# ---------------------------------------------------------------------------
+target_gsd_m: 10             # Sentinel-2 native 10 m; 20 m bands resampled to 10 m
 
-  # Bounding box in EPSG:4326 (WGS84). Order given both ways to avoid ambiguity.
-  bbox:
-    lon_min: 76.00
-    lat_min: 11.55
-    lon_max: 76.28
-    lat_max: 11.80
-    # GeoJSON-style [W, S, E, N]
-    wsen: [76.00, 11.55, 76.28, 11.80]
-  approx_extent_km: [30.5, 27.8]   # E-W, N-S at this latitude
-  approx_area_ha: 84800
+regions:
+  - id: "wayanad"
+    name: "Wayanad Plateau, Western Ghats, Kerala, India"
+    country: "India"
+    bbox: { wsen: [76.00, 11.55, 76.28, 11.80] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 237.0        # from the site probe, treecover2000>=30% & datamask==1
+    admin_context: >
+      Wayanad district, Kerala, on the Deccan/Western Ghats plateau margin.
+      Semi-evergreen and moist-deciduous forest, plantation (tea, coffee,
+      cardamom) and smallholder agriculture. Fragmented smallholder loss, not
+      arc-of-deforestation clearing. The Phase 1-7 region; kept unchanged.
+  - id: "kodagu"
+    name: "Kodagu (Madikeri), Western Ghats, Karnataka, India"
+    country: "India"
+    bbox: { wsen: [75.60, 12.30, 75.88, 12.55] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 235.0
+    admin_context: >
+      Kodagu district around Madikeri. Wet evergreen and semi-evergreen forest
+      interleaved with coffee estates; loss is a mix of estate expansion and
+      smallholder clearing. Only ~21 clear Sentinel-2 scenes per window but low
+      median cloud (~6-7%).
+  - id: "nilgiris"
+    name: "Nilgiris (Ooty), Western Ghats, Tamil Nadu, India"
+    country: "India"
+    bbox: { wsen: [76.60, 11.35, 76.88, 11.60] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 181.9
+    admin_context: >
+      Nilgiris plateau around Udhagamandalam (Ooty). Shola-grassland mosaic and
+      montane wet forest with tea and eucalyptus; the highest positive
+      prevalence of the four blocks (~0.45% of forest).
+  - id: "anamalai"
+    name: "Anamalai / Valparai, Western Ghats, Tamil Nadu, India"
+    country: "India"
+    bbox: { wsen: [76.85, 10.25, 77.13, 10.50] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 138.9
+    admin_context: >
+      Valparai plateau and the Anamalai foothills. Tropical wet evergreen forest
+      fragmented by tea estates inside a tiger-reserve landscape. Highest T+1
+      cloud of the four (~13% median) - Cloud Score+ masking over ~42 scenes.
 
-  # Working projection for area computation and patching (metric, local UTM).
-  utm_epsg: 32643            # UTM zone 43N
-  target_gsd_m: 10           # Sentinel-2 native 10 m; 20 m bands resampled to 10 m
+# Western Ghats domain extent - the union bounding box the Phase 9 app will
+# accept custom bboxes inside. Outside this, the model is out of domain.
+domain_extent_wsen: [74.8, 8.2, 77.9, 16.5]
 
 # ---------------------------------------------------------------------------
 # Bi-temporal windows. Dry season (NE monsoon retreat -> pre-SW monsoon) to
