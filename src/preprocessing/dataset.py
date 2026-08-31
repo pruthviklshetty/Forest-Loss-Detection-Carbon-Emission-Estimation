@@ -23,22 +23,47 @@ from ..common import PROC
 
 
 class PatchDataset(Dataset):
+    """split: 'train' | 'val' | 'test'.
+    scheme: 'pooled' (default) reads the `pooled_split` column (or legacy
+    `split`); 'loro' reads data/processed/loro.json and requires
+    `loro_test_region`.
+    """
+
     def __init__(self, split: str, augment: bool = False,
-                 proc_dir: pathlib.Path = PROC, min_valid_frac: float = 0.0) -> None:
+                 proc_dir: pathlib.Path = PROC, min_valid_frac: float = 0.0,
+                 scheme: str = "pooled", loro_test_region: str | None = None) -> None:
         self.split = split
         self.augment = augment
         self.dir = pathlib.Path(proc_dir) / "patches"
-        norm = json.loads((pathlib.Path(proc_dir) / "norm_stats.json").read_text())
+        proc_dir = pathlib.Path(proc_dir)
+        norm = json.loads((proc_dir / "norm_stats.json").read_text())
         self.mean = np.asarray(norm["mean"], np.float32)[:, None, None]
         self.std = np.asarray(norm["std"], np.float32)[:, None, None]
 
-        with open(pathlib.Path(proc_dir) / "index.csv", encoding="utf-8") as fh:
-            rows = [r for r in csv.DictReader(fh) if r["split"] == split]
+        rows = list(csv.DictReader(open(proc_dir / "index.csv", encoding="utf-8")))
+        by_id = {r["patch_id"]: r for r in rows}
+
+        if scheme == "loro":
+            if not loro_test_region:
+                raise SystemExit("scheme='loro' requires loro_test_region")
+            folds = json.loads((proc_dir / "loro.json").read_text())["folds"]
+            fold = next((f for f in folds if f["test_region"] == loro_test_region), None)
+            if fold is None:
+                raise SystemExit(f"no LORO fold for test region '{loro_test_region}'")
+            wanted = set(fold["ids"][split])
+            sel = [by_id[i] for i in wanted if i in by_id]
+        else:
+            def _sp(r):
+                return r.get("pooled_split") or r["split"]
+            sel = [r for r in rows if _sp(r) == split]
+
         if min_valid_frac > 0:
-            rows = [r for r in rows if float(r["valid_frac"]) >= min_valid_frac]
-        self.ids = [r["patch_id"] for r in rows]
+            sel = [r for r in sel if float(r["valid_frac"]) >= min_valid_frac]
+        self.ids = [r["patch_id"] for r in sel]
         if not self.ids:
-            raise SystemExit(f"no patches for split '{split}' in {proc_dir}")
+            raise SystemExit(
+                f"no patches for split '{split}' (scheme={scheme}"
+                f"{', region=' + loro_test_region if loro_test_region else ''}) in {proc_dir}")
 
     def __len__(self) -> int:
         return len(self.ids)

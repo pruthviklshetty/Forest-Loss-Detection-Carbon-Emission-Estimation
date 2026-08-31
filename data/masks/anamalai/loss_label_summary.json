@@ -1,0 +1,54 @@
+{
+  "region_id": "anamalai",
+  "region_name": "Anamalai / Valparai, Western Ghats, Tamil Nadu, India",
+  "source_raster": "data\\masks\\anamalai\\hansen_gfc_raw.tif",
+  "gee_asset": "UMD/hansen/global_forest_change_2024_v1_12",
+  "canopy_threshold_pct": 30.0,
+  "loss_year_codes": [
+    19,
+    20
+  ],
+  "grid": {
+    "width": 3085,
+    "height": 2786,
+    "crs": "EPSG:32643",
+    "gsd_m": 10
+  },
+  "pixels": {
+    "total": 8594810,
+    "valid_land": 8436999,
+    "valid_land_pct": 98.164,
+    "forest2000": 6856230,
+    "forest2000_pct_of_land": 81.264,
+    "loss_positive": 13648,
+    "loss_positive_pct_of_land": 0.1618,
+    "loss_positive_pct_of_forest2000": 0.1991
+  },
+  "lossyear_histogram_over_land": {
+    "0": 8266991,
+    "1": 1397,
+    "2": 2415,
+    "3": 4071,
+    "4": 1915,
+    "5": 904,
+    "6": 2432,
+    "7": 4289,
+    "8": 4203,
+    "9": 1168,
+    "11": 17450,
+    "12": 9667,
+    "13": 4865,
+    "14": 15110,
+    "15": 1634,
+    "16": 7145,
+    "17": 5868,
+    "18": 11668,
+    "19": 7434,
+    "20": 8387,
+    "21": 4831,
+    "22": 7308,
+    "23": 16389,
+    "24": 29458
+  },
+  "ha_lost_gfc_reference": 136.48
+}

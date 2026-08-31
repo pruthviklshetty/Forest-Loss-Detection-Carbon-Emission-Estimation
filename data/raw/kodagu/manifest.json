@@ -1,0 +1,172 @@
+{
+  "region_id": "kodagu",
+  "region_name": "Kodagu (Madikeri), Western Ghats, Karnataka, India",
+  "bbox_wsen_4326": [
+    75.6,
+    12.3,
+    75.88,
+    12.55
+  ],
+  "crs": "EPSG:32643",
+  "gsd_m": 10,
+  "earth_engine_project": "forest-loss-ee-test",
+  "outputs": {
+    "s2_T.tif": {
+      "path": "data\\raw\\kodagu\\s2_T.tif",
+      "window": "T",
+      "collection": "COPERNICUS/S2_SR_HARMONIZED",
+      "cloud_mask": {
+        "collection": "GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED",
+        "band": "cs_cdf",
+        "keep_threshold": 0.6
+      },
+      "date_start": "2019-01-01",
+      "date_end": "2019-04-15",
+      "n_scenes": 21,
+      "scene_ids": [
+        "20190102T052219_20190102T052400_T43PEP",
+        "20190107T052211_20190107T053012_T43PEP",
+        "20190112T052159_20190112T052430_T43PEP",
+        "20190117T052141_20190117T052141_T43PEP",
+        "20190122T052119_20190122T052703_T43PEP",
+        "20190127T052101_20190127T052801_T43PEP",
+        "20190201T052039_20190201T053112_T43PEP",
+        "20190206T052011_20190206T052457_T43PEP",
+        "20190211T051939_20190211T052909_T43PEP",
+        "20190216T051901_20190216T052953_T43PEP",
+        "20190221T051839_20190221T053339_T43PEP",
+        "20190226T051751_20190226T052941_T43PEP",
+        "20190303T051729_20190303T052812_T43PEP",
+        "20190308T051651_20190308T052854_T43PEP",
+        "20190313T051649_20190313T053504_T43PEP",
+        "20190318T051651_20190318T053305_T43PEP",
+        "20190323T051649_20190323T053456_T43PEP",
+        "20190328T051651_20190328T052823_T43PEP",
+        "20190402T051659_20190402T052808_T43PEP",
+        "20190407T051651_20190407T053201_T43PEP",
+        "20190412T051659_20190412T052853_T43PEP"
+      ],
+      "cloudy_pixel_pct_sorted": [
+        0.0,
+        0.0,
+        0.05,
+        0.94,
+        1.37,
+        2.15,
+        3.77,
+        4.2,
+        4.91,
+        5.35,
+        5.62,
+        5.8,
+        6.48,
+        8.49,
+        11.65,
+        13.16,
+        21.2,
+        22.35,
+        36.43,
+        39.85,
+        89.56
+      ],
+      "bands_src": [
+        "B3",
+        "B4",
+        "B8",
+        "B11"
+      ],
+      "bands_out": [
+        "green",
+        "red",
+        "nir",
+        "swir1"
+      ],
+      "reflectance_scale": 10000.0,
+      "reducer": "median"
+    },
+    "s2_T1.tif": {
+      "path": "data\\raw\\kodagu\\s2_T1.tif",
+      "window": "T_plus_1",
+      "collection": "COPERNICUS/S2_SR_HARMONIZED",
+      "cloud_mask": {
+        "collection": "GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED",
+        "band": "cs_cdf",
+        "keep_threshold": 0.6
+      },
+      "date_start": "2021-01-01",
+      "date_end": "2021-04-15",
+      "n_scenes": 21,
+      "scene_ids": [
+        "20210101T052219_20210101T053416_T43PEP",
+        "20210106T052221_20210106T052812_T43PEP",
+        "20210111T052159_20210111T053045_T43PEP",
+        "20210116T052151_20210116T053233_T43PEP",
+        "20210121T052119_20210121T052907_T43PEP",
+        "20210126T052111_20210126T052106_T43PEP",
+        "20210131T052039_20210131T053249_T43PEP",
+        "20210205T052011_20210205T053438_T43PEP",
+        "20210210T051939_20210210T052401_T43PEP",
+        "20210215T051911_20210215T052634_T43PEP",
+        "20210220T051839_20210220T053312_T43PEP",
+        "20210225T051801_20210225T053358_T43PEP",
+        "20210302T051729_20210302T052733_T43PEP",
+        "20210307T051651_20210307T053320_T43PEP",
+        "20210312T051649_20210312T052843_T43PEP",
+        "20210317T051651_20210317T053058_T43PEP",
+        "20210322T051649_20210322T052843_T43PEP",
+        "20210327T051651_20210327T053454_T43PEP",
+        "20210401T051649_20210401T052647_T43PEP",
+        "20210406T051651_20210406T053238_T43PEP",
+        "20210411T051649_20210411T052917_T43PEP"
+      ],
+      "cloudy_pixel_pct_sorted": [
+        0.06,
+        0.16,
+        0.28,
+        0.86,
+        1.17,
+        1.82,
+        3.29,
+        3.88,
+        4.78,
+        5.89,
+        7.02,
+        7.68,
+        8.73,
+        10.92,
+        15.74,
+        20.41,
+        25.69,
+        34.83,
+        55.99,
+        65.68,
+        97.93
+      ],
+      "bands_src": [
+        "B3",
+        "B4",
+        "B8",
+        "B11"
+      ],
+      "bands_out": [
+        "green",
+        "red",
+        "nir",
+        "swir1"
+      ],
+      "reflectance_scale": 10000.0,
+      "reducer": "median"
+    },
+    "hansen_gfc_raw.tif": {
+      "path": "data\\masks\\kodagu\\hansen_gfc_raw.tif",
+      "asset": "UMD/hansen/global_forest_change_2024_v1_12",
+      "bands": [
+        "treecover2000",
+        "lossyear",
+        "datamask"
+      ],
+      "note": "Native 30 m, resampled nearest to the 10 m S2 grid on download so labels align pixel-for-pixel. lossyear: 0 = no loss, k = loss in year 2000+k."
+    }
+  },
+  "written_utc": "2026-08-31T16:08:08Z"
+}

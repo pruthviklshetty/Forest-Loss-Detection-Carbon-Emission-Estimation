@@ -142,8 +142,11 @@ def main() -> None:
     model.eval()
 
     dc = cfg["data"]
-    va = PatchDataset("val", augment=False, proc_dir=dc["proc_dir"], min_valid_frac=dc["min_valid_frac"])
-    te = PatchDataset("test", augment=False, proc_dir=dc["proc_dir"], min_valid_frac=dc["min_valid_frac"])
+    ds_kw = dict(proc_dir=dc["proc_dir"], min_valid_frac=dc["min_valid_frac"],
+                 scheme=dc.get("scheme", "pooled"),
+                 loro_test_region=dc.get("loro_test_region"))
+    va = PatchDataset("val", augment=False, **ds_kw)
+    te = PatchDataset("test", augment=False, **ds_kw)
     vl = DataLoader(va, batch_size=dc["batch_size"], shuffle=False, num_workers=dc["num_workers"])
     tl = DataLoader(te, batch_size=dc["batch_size"], shuffle=False, num_workers=dc["num_workers"])
 

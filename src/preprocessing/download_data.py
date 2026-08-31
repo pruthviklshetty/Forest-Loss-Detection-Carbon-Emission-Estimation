@@ -1,25 +1,29 @@
-"""Phase 2, step 1 - raw data acquisition.
+"""Phase 2/8, step 1 - raw data acquisition, per region.
 
-Pulls, for the study region in configs/region.yaml:
-  1. A cloud-masked Sentinel-2 SR median composite for window T   -> data/raw/s2_T.tif
-  2. The same for window T+1                                       -> data/raw/s2_T1.tif
+For every region in configs/region.yaml (see src/regions.py), pulls:
+  1. A cloud-masked Sentinel-2 SR median composite for window T   -> data/raw/<id>/s2_T.tif
+  2. The same for window T+1                                       -> data/raw/<id>/s2_T1.tif
      Each has 4 float32 bands in [0,1]: green(B3), red(B4), nir(B8), swir1(B11).
-  3. Hansen GFC treecover2000 / lossyear / datamask               -> data/masks/hansen_gfc_raw.tif
+  3. Hansen GFC treecover2000 / lossyear / datamask               -> data/masks/<id>/hansen_gfc_raw.tif
      resampled (nearest) onto the same 10 m UTM grid as the S2 rasters.
 
-All three share EPSG:32643, 10 m pixels, and an identical footprint, so they
-stack pixel-for-pixel with no further warping. A JSON manifest with the exact
-collection ids, dates, scene counts and parameters is written to data/raw/.
+Per region the three rasters share that region's UTM CRS, 10 m pixels and an
+identical footprint, so they stack pixel-for-pixel. A per-region manifest is
+written to data/raw/<id>/manifest.json.
 
-Run:  python -m src.preprocessing.download_data
+Run:  python -m src.preprocessing.download_data                 # all regions
+      python -m src.preprocessing.download_data --regions kodagu,nilgiris
+      python -m src.preprocessing.download_data --skip-existing
 """
 
 from __future__ import annotations
 
+import argparse
 import pathlib
 
 import ee
 
+from ..regions import load_regions
 from .eeutil import download_image_tiled, init_ee, load_cfg, write_manifest
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
@@ -79,30 +83,28 @@ def s2_composite(aoi: ee.Geometry, start: str, end: str) -> tuple[ee.Image, dict
     return comp, stats
 
 
-def main() -> None:
-    cfg = load_cfg()
-    project = init_ee(cfg)
-    print(f"Earth Engine initialised on project: {project}")
-
-    bbox = cfg["region"]["bbox"]["wsen"]
-    crs = f"EPSG:{cfg['region']['utm_epsg']}"
-    scale = int(cfg["region"]["target_gsd_m"])
+def download_region(region: dict, cfg: dict, project: str, skip_existing: bool) -> None:
+    rid = region["id"]
+    bbox = region["bbox_wsen"]
+    crs = f"EPSG:{region['utm_epsg']}"
+    scale = int(region["gsd_m"])
     aoi = ee.Geometry.Rectangle(bbox, "EPSG:4326", geodesic=False)
-
     tw = cfg["time_windows"]
-    raw_dir = _REPO / "data" / "raw"
-    masks_dir = _REPO / "data" / "masks"
+    raw_dir = _REPO / "data" / "raw" / rid
+    masks_dir = _REPO / "data" / "masks" / rid
 
+    want = [raw_dir / "s2_T.tif", raw_dir / "s2_T1.tif", masks_dir / "hansen_gfc_raw.tif"]
+    if skip_existing and all(p.exists() for p in want):
+        print(f"\n=== {rid}: all rasters present, skipping ===")
+        return
+
+    print(f"\n=== {rid}  {region['name']} ===\n  bbox {bbox}  {crs}  {scale} m")
     manifest: dict = {
-        "region": cfg["region"]["name"],
-        "bbox_wsen_4326": bbox,
-        "crs": crs,
-        "gsd_m": scale,
-        "earth_engine_project": project,
-        "outputs": {},
+        "region_id": rid, "region_name": region["name"],
+        "bbox_wsen_4326": bbox, "crs": crs, "gsd_m": scale,
+        "earth_engine_project": project, "outputs": {},
     }
 
-    # --- Sentinel-2 composites -------------------------------------------------
     for key, out_name in (("T", "s2_T.tif"), ("T_plus_1", "s2_T1.tif")):
         win = tw[key]
         print(f"\n[Sentinel-2 {win['label']}]  {win['start']} .. {win['end']}")
@@ -110,13 +112,9 @@ def main() -> None:
         print(f"  {stats['n_scenes']} scenes in window")
         out = download_image_tiled(comp, bbox, raw_dir / out_name, crs=crs, scale_m=scale,
                                    band_names=S2_BAND_NAMES)
-        manifest["outputs"][out_name] = {
-            "path": str(out.relative_to(_REPO)),
-            "window": key,
-            **stats,
-        }
+        manifest["outputs"][out_name] = {"path": str(out.relative_to(_REPO)),
+                                         "window": key, **stats}
 
-    # --- Hansen Global Forest Change ----------------------------------------
     gfc_asset = cfg["ground_truth"]["gee_asset"]
     print(f"\n[Hansen GFC]  {gfc_asset}")
     gfc = ee.Image(gfc_asset).select(["treecover2000", "lossyear", "datamask"])
@@ -128,15 +126,36 @@ def main() -> None:
         "path": str(out.relative_to(_REPO)),
         "asset": gfc_asset,
         "bands": ["treecover2000", "lossyear", "datamask"],
-        "note": (
-            "Native 30 m, resampled nearest to the 10 m S2 grid on download so "
-            "labels align pixel-for-pixel. lossyear: 0 = no loss, k = loss in "
-            "year 2000+k."
-        ),
+        "note": ("Native 30 m, resampled nearest to the 10 m S2 grid on download "
+                 "so labels align pixel-for-pixel. lossyear: 0 = no loss, "
+                 "k = loss in year 2000+k."),
     }
-
     write_manifest(raw_dir / "manifest.json", manifest)
-    print("\nDone. Raw data in data/raw/ and data/masks/.")
+    print(f"  -> data/raw/{rid}/ , data/masks/{rid}/")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--regions", default=None, help="comma-separated region ids (default: all)")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="skip a region whose three rasters already exist")
+    args = ap.parse_args()
+
+    cfg = load_cfg()
+    project = init_ee(cfg)
+    print(f"Earth Engine initialised on project: {project}")
+
+    regions = load_regions(cfg)
+    if args.regions:
+        want = {s.strip() for s in args.regions.split(",")}
+        regions = [r for r in regions if r["id"] in want]
+        if not regions:
+            raise SystemExit(f"no matching regions for {args.regions}")
+    print(f"regions: {[r['id'] for r in regions]}")
+
+    for region in regions:
+        download_region(region, cfg, project, args.skip_existing)
+    print("\nDone.")
 
 
 if __name__ == "__main__":

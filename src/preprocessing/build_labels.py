@@ -20,22 +20,27 @@ occurred between the two acquisitions. Loss dated <= 18 already happened before
 T (those pixels are non-forest in the T image and are treated as negatives, not
 positives). Loss dated >= 21 happened after T+1 and is likewise a negative.
 
-Outputs (uint8, EPSG:32643, 10 m, same footprint as data/raw/s2_*.tif):
-    data/masks/loss_label.tif    0 / 1   binary forest-loss target
-    data/masks/valid_mask.tif    0 / 1   1 = usable pixel (datamask == 1)
-    data/masks/forest2000.tif    0 / 1   canopy >= threshold at 2000 (kept for the carbon phase)
+Runs per region. Outputs (uint8, region UTM, 10 m, same footprint as
+data/raw/<id>/s2_*.tif):
+    data/masks/<id>/loss_label.tif    0 / 1   binary forest-loss target
+    data/masks/<id>/valid_mask.tif    0 / 1   1 = usable pixel (datamask == 1)
+    data/masks/<id>/forest2000.tif    0 / 1   canopy >= threshold at 2000
+    data/masks/<id>/loss_label_summary.json
 
-Run:  python -m src.preprocessing.build_labels
+Run:  python -m src.preprocessing.build_labels                    # all regions
+      python -m src.preprocessing.build_labels --regions kodagu
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
 
 import numpy as np
 import rasterio
 
+from ..regions import load_regions
 from .eeutil import load_cfg
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
@@ -65,12 +70,13 @@ def _read_gfc(path: pathlib.Path) -> dict[str, np.ndarray]:
     return out
 
 
-def main() -> None:
-    cfg = load_cfg()
+def build_region(region: dict, cfg: dict) -> dict:
+    rid = region["id"]
     canopy_thr = float(cfg["ground_truth"]["canopy_threshold_pct"])
     loss_codes = list(cfg["ground_truth"]["loss_year_codes"])
-
-    gfc_path = _MASKS / "hansen_gfc_raw.tif"
+    gsd = int(region["gsd_m"])
+    mdir = _MASKS / rid
+    gfc_path = mdir / "hansen_gfc_raw.tif"
     if not gfc_path.exists():
         raise SystemExit(f"missing {gfc_path}; run src.preprocessing.download_data first")
 
@@ -82,7 +88,6 @@ def main() -> None:
     forest2000 = treecover >= canopy_thr
     land = datamask == 1
     loss_window = np.isin(lossyear, loss_codes)
-
     label = (forest2000 & land & loss_window).astype(np.uint8)
     valid = land.astype(np.uint8)
     forest2000_u8 = forest2000.astype(np.uint8)
@@ -91,34 +96,26 @@ def main() -> None:
     prof.update(count=1, dtype="uint8", nodata=None, compress="deflate")
 
     def _write(name: str, arr: np.ndarray, band_desc: str) -> None:
-        path = _MASKS / name
-        with rasterio.open(path, "w", **prof) as dst:
+        with rasterio.open(mdir / name, "w", **prof) as dst:
             dst.write(arr, 1)
             dst.descriptions = (band_desc,)
-        print(f"  -> {path}  ({arr.shape[1]}x{arr.shape[0]}, sum={int(arr.sum())})")
+        print(f"  -> {mdir.name}/{name}  ({arr.shape[1]}x{arr.shape[0]}, sum={int(arr.sum())})")
 
     _write("loss_label.tif", label, "forest_loss_T_to_T1")
     _write("valid_mask.tif", valid, "datamask_eq_1")
     _write("forest2000.tif", forest2000_u8, f"treecover2000_ge_{int(canopy_thr)}pct")
 
-    n = label.size
-    n_valid = int(valid.sum())
-    n_pos = int(label.sum())
-    n_forest = int(forest2000_u8.sum())
-    lossyear_hist = {
-        int(k): int(v)
-        for k, v in zip(*np.unique(lossyear[land], return_counts=True))
-    }
+    n, n_valid, n_pos, n_forest = label.size, int(valid.sum()), int(label.sum()), int(forest2000_u8.sum())
+    lossyear_hist = {int(k): int(v) for k, v in zip(*np.unique(lossyear[land], return_counts=True))}
     summary = {
+        "region_id": rid, "region_name": region["name"],
         "source_raster": str(gfc_path.relative_to(_REPO)),
         "gee_asset": cfg["ground_truth"]["gee_asset"],
-        "canopy_threshold_pct": canopy_thr,
-        "loss_year_codes": loss_codes,
+        "canopy_threshold_pct": canopy_thr, "loss_year_codes": loss_codes,
         "grid": {"width": int(label.shape[1]), "height": int(label.shape[0]),
-                 "crs": str(g["_crs"]), "gsd_m": int(cfg["region"]["target_gsd_m"])},
+                 "crs": str(g["_crs"]), "gsd_m": gsd},
         "pixels": {
-            "total": n,
-            "valid_land": n_valid,
+            "total": n, "valid_land": n_valid,
             "valid_land_pct": round(100 * n_valid / n, 3),
             "forest2000": n_forest,
             "forest2000_pct_of_land": round(100 * n_forest / max(n_valid, 1), 3),
@@ -127,12 +124,33 @@ def main() -> None:
             "loss_positive_pct_of_forest2000": round(100 * n_pos / max(n_forest, 1), 4),
         },
         "lossyear_histogram_over_land": lossyear_hist,
-        "ha_lost_gfc_reference": round(n_pos * (int(cfg["region"]["target_gsd_m"]) ** 2) / 1e4, 2),
+        "ha_lost_gfc_reference": round(n_pos * gsd * gsd / 1e4, 2),
     }
-    out_json = _MASKS / "loss_label_summary.json"
-    out_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  summary -> {out_json}")
-    print(json.dumps(summary["pixels"], indent=2))
+    (mdir / "loss_label_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(f"  {rid}: {summary['ha_lost_gfc_reference']} ha loss, "
+          f"{summary['pixels']['loss_positive_pct_of_forest2000']}% of forest2000")
+    return summary
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--regions", default=None)
+    args = ap.parse_args()
+    cfg = load_cfg()
+    regions = load_regions(cfg)
+    if args.regions:
+        want = {s.strip() for s in args.regions.split(",")}
+        regions = [r for r in regions if r["id"] in want]
+
+    totals = {"ha": 0.0, "loss_px": 0, "forest_px": 0}
+    for region in regions:
+        s = build_region(region, cfg)
+        totals["ha"] += s["ha_lost_gfc_reference"]
+        totals["loss_px"] += s["pixels"]["loss_positive"]
+        totals["forest_px"] += s["pixels"]["forest2000"]
+    print(f"\nPOOLED across {len(regions)} region(s): "
+          f"{totals['ha']:.1f} ha GFC loss, "
+          f"{100 * totals['loss_px'] / max(totals['forest_px'], 1):.4f}% of forest2000")
 
 
 if __name__ == "__main__":

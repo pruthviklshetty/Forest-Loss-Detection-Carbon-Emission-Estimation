@@ -34,10 +34,11 @@ from .preprocessing.dataset import PatchDataset  # noqa: E402
 
 
 def _loaders(dc: dict):
-    tr = PatchDataset("train", augment=dc["augment"], proc_dir=dc["proc_dir"],
-                      min_valid_frac=dc["min_valid_frac"])
-    va = PatchDataset("val", augment=False, proc_dir=dc["proc_dir"],
-                      min_valid_frac=dc["min_valid_frac"])
+    kw = dict(proc_dir=dc["proc_dir"], min_valid_frac=dc["min_valid_frac"],
+              scheme=dc.get("scheme", "pooled"),
+              loro_test_region=dc.get("loro_test_region"))
+    tr = PatchDataset("train", augment=dc["augment"], **kw)
+    va = PatchDataset("val", augment=False, **kw)
     tl = DataLoader(tr, batch_size=dc["batch_size"], shuffle=True,
                     num_workers=dc["num_workers"], drop_last=True, pin_memory=True)
     vl = DataLoader(va, batch_size=dc["batch_size"], shuffle=False,
@@ -76,12 +77,20 @@ def main() -> None:
                     help="override optim/seed from the config (for multi-seed sweeps)")
     ap.add_argument("--experiment", default=None,
                     help="override the experiment name (checkpoint / history stem)")
+    ap.add_argument("--scheme", choices=["pooled", "loro"], default=None,
+                    help="split scheme (default: config's data.scheme or 'pooled')")
+    ap.add_argument("--loro-region", default=None,
+                    help="held-out test region id when --scheme loro")
     args = ap.parse_args()
     cfg = load_yaml(args.config)
     if args.seed is not None:
         cfg["seed"] = args.seed
     if args.experiment:
         cfg["experiment"] = args.experiment
+    if args.scheme:
+        cfg["data"]["scheme"] = args.scheme
+    if args.loro_region:
+        cfg["data"]["loro_test_region"] = args.loro_region
     seed_everything(cfg["seed"])
     device = get_device()
     exp = cfg["experiment"]

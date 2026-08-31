@@ -16,6 +16,9 @@ data/raw/*
 data/masks/*
 data/processed/*
 !data/**/.gitkeep
+# re-include per-region subdirs so the small provenance JSON below can be kept
+!data/raw/*/
+!data/masks/*/
 *.tif
 *.tiff
 *.npy
@@ -26,9 +29,12 @@ data/processed/*
 
 # ...but keep the small text provenance artifacts (ground rule 2)
 !data/raw/manifest.json
+!data/raw/**/manifest.json
 !data/masks/loss_label_summary.json
+!data/masks/**/loss_label_summary.json
 !data/processed/index.csv
 !data/processed/split.json
+!data/processed/loro.json
 !data/processed/norm_stats.json
 
 # Results binaries (keep metrics JSON/CSV and markdown, ignore heavy figures if needed)

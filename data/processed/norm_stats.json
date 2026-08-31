@@ -9,26 +9,32 @@
     "T1_nir",
     "T1_swir1"
   ],
-  "computed_over": "valid pixels of canonical (non-overlap) train patches",
-  "n_pixels": 4967118,
+  "computed_over": "valid pixels of POOLED canonical (non-overlap) train patches",
+  "regions": [
+    "wayanad",
+    "kodagu",
+    "nilgiris",
+    "anamalai"
+  ],
+  "n_pixels": 20787500,
   "mean": [
-    0.059007,
-    0.052942,
-    0.239959,
-    0.186447,
-    0.059682,
-    0.050761,
-    0.248016,
-    0.182254
+    0.060807,
+    0.057766,
+    0.261044,
+    0.203008,
+    0.057373,
+    0.050087,
+    0.26532,
+    0.193261
   ],
   "std": [
-    0.016566,
-    0.025163,
-    0.044092,
-    0.043015,
-    0.015236,
-    0.022416,
-    0.046129,
-    0.041365
+    0.02083,
+    0.035029,
+    0.055471,
+    0.060468,
+    0.018877,
+    0.029886,
+    0.057551,
+    0.054895
   ]
 }
