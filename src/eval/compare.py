@@ -109,10 +109,37 @@ def main() -> None:
     L = []
     A = L.append
     A("# Phase 4 - Standard U-Net vs Attention U-Net + MobileNetV2\n")
-    A("Both models: identical splits, identical schedule "
-      "(`configs/train_baseline.yaml` == `configs/train_attention.yaml` for "
-      "data/optim/loss/seed), operating threshold tuned on val by max Dice, "
-      "metrics on the held-out 18-patch test set.\n")
+
+    # --- headline: mean +/- sd across seeds, if the sweep has been run --------
+    sr_path = RESULTS / "metrics" / "seed_runs.json"
+    if sr_path.exists():
+        sr = json.loads(sr_path.read_text())
+        A(f"**Headline = mean +/- sd across seeds {sr['seeds']}** "
+          f"(early stopping, patience {sr['early_stop_patience']}; configs "
+          f"otherwise byte-identical). Per-seed values in "
+          f"`results/metrics/seed_runs.json`.\n")
+        A("| Metric | U-Net (baseline) | Attn U-Net + MNv2 |")
+        A("|---|---|---|")
+        sb, sa = sr["summary"]["baseline_unet"], sr["summary"]["attention_unet"]
+        for k, lbl in (("test_iou", "test IoU"), ("test_dice", "test Dice"),
+                       ("test_precision", "test precision"),
+                       ("test_recall", "test recall"),
+                       ("best_val_dice", "best val Dice")):
+            A(f"| {lbl} | {sb[k]['mean']:.3f} +/- {sb[k]['sd']:.3f} | "
+              f"{sa[k]['mean']:.3f} +/- {sa[k]['sd']:.3f} |")
+        ov = sr["summary"].get("test_iou_intervals_overlap")
+        vb, va = sb["test_iou"]["values"], sa["test_iou"]["values"]
+        A(f"\nTest-IoU values: U-Net {vb}, Attn {va}. "
+          f"Mean +/- 1 sd intervals **{'overlap' if ov else 'do NOT overlap'}** -> "
+          f"the U-Net > Attn difference is "
+          f"**{'unsupported' if ov else 'supported'}** by this criterion "
+          f"(n=3 per group; a lenient bar - see docs/phase7_notes.md).\n")
+
+    A("---\n")
+    A(f"Single representative run below (U-Net {base.get('checkpoint','')}, "
+      f"Attn {attn.get('checkpoint','')} - the median-best-val-Dice seed of "
+      f"each). Identical splits and schedule; operating threshold tuned on val "
+      f"by max Dice; metrics on the held-out 18-patch test set.\n")
     A("| | Baseline U-Net | Attn U-Net + MNv2 | Delta |")
     A("|---|---|---|---|")
     A(f"| Params | {base['n_params']:,} | {attn['n_params']:,} | "

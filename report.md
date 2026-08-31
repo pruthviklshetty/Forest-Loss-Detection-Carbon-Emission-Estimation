@@ -3,7 +3,10 @@
 *Short paper / workshop manuscript. All quantitative values are produced by the
 scripts in this repository and are reproducible from the committed configs and
 data-provenance files; no numbers are placeholders. Section 5.6 documents a
-data-leakage audit and the full re-run that followed it.*
+data-leakage audit, a multi-seed variance analysis, and the full re-runs that
+followed. Segmentation headline metrics are reported as mean +/- sd over 3
+seeds (42, 43, 44); single-checkpoint numbers, where given, are the
+median-validation-Dice seed.*
 
 ---
 
@@ -13,26 +16,29 @@ We present an end-to-end pipeline that takes two dated Sentinel-2 composites
 and returns a hectares-lost and a tonnes-CO2 figure for a study region in one
 system. Forest loss between the two dates is segmented directly from an 8-band
 bi-temporal stack with an attention-gated U-Net (MobileNetV2 encoder) and a
-plain U-Net baseline, trained and evaluated under an identical protocol on a
-Western Ghats (Wayanad, Kerala) tile with Hansen Global Forest Change (GFC)
-labels for calendar 2019-2020. The predicted change mask is converted to
-hectares with the 10 m ground sample distance, and each cleared pixel's
-pre-clearing NDVI is mapped to an aboveground carbon density with (i) a coarse
-3-bin baseline and (ii) a continuous regression calibrated against published
-Western Ghats field-inventory carbon densities. On the held-out test region the
-plain U-Net reaches **IoU 0.16 / Dice 0.28**; the attention model is clearly
-worse under the shared schedule (**IoU 0.08 / Dice 0.15**). The pipeline
-**under-predicts the held-out test area by ~23%** (39.6 ha vs a 51.5 ha GFC
-reference) - closer to correct than the 0.16 pixel IoU alone suggests, but not
-a near-match. The primary regression yields ~21,600 t CO2 for the predicted
-test-region loss (vs ~22,300 t from the 3-bin scheme); this lands within ~1% of
-the GFC-reference-area figure, but through offsetting errors (area low, mean
-carbon density high), so it is a coincidence rather than a validation. On the
-GFC reference area the pipeline's per-hectare emission factor is ~60% of the
-Global Forest Watch all-pools figure for Wayanad, the expected fraction for an
-aboveground-only, CO2-only accounting. The contributions are the **integrated,
-honestly-audited pipeline** and the **bins-to-regression carbon upgrade**, not
-the segmentation architecture.
+plain U-Net baseline, trained with early stopping and evaluated under an
+identical protocol on a Western Ghats (Wayanad, Kerala) tile with Hansen Global
+Forest Change (GFC) labels for calendar 2019-2020. The predicted change mask is
+converted to hectares with the 10 m ground sample distance, and each cleared
+pixel's pre-clearing NDVI is mapped to an aboveground carbon density with (i) a
+coarse 3-bin baseline and (ii) a continuous regression calibrated against
+published Western Ghats field-inventory carbon densities. Across 3 seeds the
+plain U-Net reaches **test IoU 0.158 +/- 0.016 / Dice 0.273 +/- 0.024**; the
+attention model is worse under the shared schedule (**IoU 0.113 +/- 0.023 /
+Dice 0.203 +/- 0.038**). The two models' test-IoU mean +/- 1 sd intervals do
+not overlap, so the plain U-Net's advantage is supported at that (lenient,
+n=3) criterion. On the carry-forward checkpoint the pipeline **under-predicts
+the held-out test area by ~27%** (37.3 ha vs a 51.5 ha GFC reference) - closer
+to correct than the ~0.17 pixel IoU alone suggests, but not a near-match. The
+primary regression yields ~17,900 t CO2 for the predicted test-region loss
+(0.83x the GFC-reference-area figure); the CO2 ratio is less extreme than the
+area ratio because an area under-count is partly offset by a carbon-density
+over-count, so neither is independent evidence of accuracy. On the GFC
+reference area the pipeline's per-hectare emission factor is ~60% of the Global
+Forest Watch all-pools figure for Wayanad, the expected fraction for an
+aboveground-only, CO2-only accounting, and independent of the segmentation
+model. The contributions are the **integrated, honestly-audited pipeline** and
+the **bins-to-regression carbon upgrade**, not the segmentation architecture.
 
 ---
 
@@ -164,13 +170,18 @@ map; the T-vs-T+1 comparison is thus learned in one forward pass.
   Oktay additive attention gate whose gating signal is the upsampled coarser
   decoder feature. 6.70 M parameters.
 
-**Shared training protocol** (`configs/train_baseline.yaml` ==
-`configs/train_attention.yaml` for data, optimiser, loss and seed): 80 epochs,
-Adam, lr 3e-4 cosine-annealed, batch 8, mixed precision, gradient clip 1.0,
-loss = soft-Dice + BCE with `pos_weight = 40`, all operations masked by the
-per-pixel `valid` map. The checkpoint is the epoch of best validation Dice; the
-operating threshold is then chosen on validation by maximising Dice over a
-`[0.10, 0.98]` sweep. Metrics are computed once on the held-out test split.
+**Shared training protocol** (`configs/train_baseline.yaml` and
+`configs/train_attention.yaml` differ only in the model block): Adam, lr 3e-4
+cosine-annealed over an 80-epoch `T_max`, batch 8, mixed precision, gradient
+clip 1.0, loss = soft-Dice + BCE with `pos_weight = 40`, all operations masked
+by the per-pixel `valid` map. **Early stopping** on validation Dice with
+patience 15 restores the best checkpoint (Section 5.6 shows the best epoch
+lands early regardless of schedule length). The operating threshold is then
+chosen on validation by maximising Dice over a `[0.10, 0.98]` sweep. Metrics
+are computed once on the held-out test split. Each model is trained under **3
+seeds (42, 43, 44)**; headline metrics are mean +/- sd across seeds, and the
+single checkpoint carried into Sections 5.2, 5.4-5.5 is the median-validation-
+Dice seed (Section 5.3).
 
 ### 4.2 Change detection and area
 
@@ -209,110 +220,112 @@ release, no regrowth credit).
 
 ## 5. Results
 
-All numbers below are from the **post-audit re-run** (leak-free split; see
-Section 5.6 for the before/after comparison).
+All numbers are from the **leak-free split** with **early stopping** and are
+**mean +/- sd over 3 seeds** unless a single carry-forward checkpoint is named.
+Section 5.6 gives the leakage audit and the pre-audit before/after; Section 5.7
+gives the seed-variance analysis.
 
 ### 5.1 Segmentation (held-out test split, 18 patches)
 
-| Model | Params | Op. thr | IoU | Dice / F1 | Precision | Recall | Pixel acc. |
-|---|---|---|---|---|---|---|---|
-| **U-Net (baseline)** | 7.76 M | 0.88 | **0.161** | **0.278** | 0.318 | 0.246 | 0.9944 |
-| Attention U-Net + MNv2 | 6.70 M | 0.78 | 0.081 | 0.149 | 0.133 | 0.171 | 0.9914 |
-| delta (proposed - baseline) | | | -0.080 | -0.128 | -0.185 | -0.075 | -0.003 |
+| Metric | U-Net (baseline) | Attn U-Net + MNv2 |
+|---|---|---|
+| Params | 7.76 M | 6.70 M |
+| **test IoU** | **0.158 +/- 0.016** | **0.113 +/- 0.023** |
+| **test Dice / F1** | **0.273 +/- 0.024** | **0.203 +/- 0.038** |
+| test precision | 0.332 +/- 0.018 | 0.206 +/- 0.031 |
+| test recall | 0.231 +/- 0.026 | 0.202 +/- 0.052 |
+| best val Dice | 0.250 +/- 0.006 | 0.237 +/- 0.009 |
+| operating threshold (per seed) | 0.92 / 0.92 / 0.92 | 0.88 / 0.92 / 0.92 |
+| stop epoch / best epoch (per seed) | 23/8, 22/7, 16/1 | 30/15, 50/35, 32/17 |
 
-Pixel accuracy is ~0.99 for both and is uninformative (99.6% of valid pixels
-are negative); IoU and Dice are the operative metrics. Best validation Dice is
-a near-tie (**baseline 0.245 @ epoch 8, attention 0.246 @ epoch 36**), while the
-held-out test set clearly favours the baseline (IoU 0.161 vs 0.081). On the
-leak-free split neither model shows convincing learning: validation Dice bounces
-in ~[0.17, 0.25] across all 80 epochs while training loss keeps falling (U-Net
-1.74 -> 0.84), i.e. both models overfit the 261-patch train set against a
-16-patch validation set. The attention model, with a pretrained natural-RGB
-encoder driven by an 8-band reflectance stack, overfits harder and generalises
-worse. All subsequent stages use the plain U-Net (see Section 5.3 on model
-selection).
+Pixel accuracy is ~0.99 for both and uninformative (99.6% of valid pixels are
+negative); IoU and Dice are the operative metrics. **The two models' test-IoU
+mean +/- 1 sd intervals - U-Net [0.142, 0.174], Attn [0.090, 0.136] - do not
+overlap**, so the plain U-Net's advantage is supported at that criterion (n=3
+per group; a Welch t-test on the six values gives t = 2.75, p ~ 0.06 -
+suggestive, not conclusive; Section 5.7).
+
+Neither model shows convincing learning: best validation Dice is reached at
+epochs 1-8 (U-Net) / 15-35 (Attn) and never improves after, while training loss
+keeps falling - both overfit the 261-patch train set against a 16-patch
+validation set. The attention model, with a pretrained natural-RGB encoder
+driven by an 8-band reflectance stack, overfits harder and its test recall is
+also the least stable across seeds (+/- 0.052).
 
 Against John and Zhang (2022) (test IoU 0.90-0.95, F1 0.955-0.977), our IoU/F1
 are far lower. This is expected and not a like-for-like failure: different task
 (bi-temporal change vs single-image segmentation), ~0.3% vs abundant positive
 prevalence, 30 m GFC labels vs hand-digitised polygons, and fragmented
 smallholder loss vs Amazon clear-cutting. Their own Attention-vs-U-Net gain is
-small (F1 +0.002 to +0.018), so the direction we see (attention worse under a
-fair shared schedule on a tiny dataset) is not in tension with their finding.
+small (F1 +0.002 to +0.018).
 
-### 5.2 Change detection and area
+### 5.2 Model selection
+
+The checkpoint carried into Sections 5.3-5.5 is chosen **on validation only**:
+the U-Net seed with **median best validation Dice** (seed 43, val Dice 0.252;
+seeds 42/44 give 0.244/0.255). Test metrics are never used to select. Seed 43's
+own test scores (IoU 0.170, Dice 0.290) are reported here only for traceability,
+not as a selection criterion. Both models' full per-seed results are in
+`results/metrics/seed_runs.json` and Section 5.1.
+
+### 5.3 Change detection and area (carry-forward U-Net, seed 43)
 
 | Region | GFC reference (ha) | Predicted (ha) | Pred / GFC | Pixel IoU |
 |---|---|---|---|---|
-| **test (held out)** | **51.5** | **39.6** | **0.77** | 0.161 |
-| val | 29.8 | 26.0 | 0.87 | 0.145 |
-| train | 131.7 | 86.5 | 0.66 | 0.100 |
-| full region | 237.4 | 164.5 | 0.69 | 0.125 |
+| **test (held out)** | **51.5** | **37.3** | **0.73** | 0.169 |
+| val | 29.8 | 26.3 | 0.88 | 0.149 |
+| train | 131.7 | 87.0 | 0.66 | 0.103 |
+| full region | 237.4 | 165.7 | 0.70 | 0.132 |
 
-On the held-out region the model **under-predicts area by ~23%** (39.6 ha vs
-51.5 ha). The aggregate ratio (0.77) is closer to 1 than the pixel IoU (0.16)
-would imply - errors partly cancel when summed - but this is a modest
-improvement, not the near-match one might hope for, and it does not hold on the
-full region (0.69). The direction is consistent across all four splits
-(under-prediction), which points to a genuine recall deficit (the model at its
-operating threshold recovers ~25% of loss pixels) rather than noise.
+On the held-out region the model **under-predicts area by ~27%** (37.3 ha vs
+51.5 ha). The aggregate ratio (0.73) is closer to 1 than the pixel IoU (0.17)
+would imply - false positives and negatives partly cancel when summed - but it
+is a modest improvement, not a near-match, and the under-prediction is
+**consistent across all four splits** (0.66-0.88), pointing to a genuine recall
+deficit (the model at its operating threshold recovers ~25% of loss pixels)
+rather than noise. A recall-oriented loss or a lower threshold would trade
+precision to close it.
 
-### 5.3 Model selection
-
-Validation marginally preferred the attention model (Dice 0.2458 vs 0.2453 - a
-0.0005 gap); the held-out test set preferred the baseline decisively (IoU 0.161
-vs 0.081). **Both differences sit inside the noise of a 16-validation /
-18-test-patch split**, and choosing on the test set would itself be selection
-on the held-out data. The plain U-Net is carried into Sections 5.2, 5.4 and 5.5
-for reasons **independent of its test score**: a simpler architecture, no
-pretrained-RGB-encoder mismatch against an 8-band reflectance stack, and fewer
-moving parts for the downstream region-wide inference. Both models' test numbers
-are reported with equal prominence in Section 5.1.
-
-### 5.4 Carbon and CO2
+### 5.4 Carbon and CO2 (carry-forward U-Net, seed 43)
 
 | Pixel set | Area (ha) | 3-bin (t CO2) | reg-linear (t CO2) | reg-exp / primary (t CO2) | mean AGC (tC/ha) |
 |---|---|---|---|---|---|
-| **predicted, test region** | 39.6 | 22,343 | 25,591 | **21,645** | 149 |
+| **predicted, test region** | 37.3 | 19,938 | 21,235 | **17,918** | 131 |
 | GFC reference, test region | 51.5 | 25,819 | 24,800 | 21,507 | 114 |
-| predicted, full region | 164.5 | 94,574 | 109,486 | 94,778 | 157 |
+| predicted, full region | 165.7 | 89,314 | 94,541 | 82,261 | 135 |
 | GFC reference, full region | 237.4 | 116,699 | 104,726 | 94,273 | 108 |
 
-**Held-out headline:** 39.6 ha of predicted new loss -> **~21,600 t CO2**
-(primary regression), against ~21,500 t CO2 on the GFC reference area for the
-same region - a ~1% match. That match is **coincidental**: the model
-under-predicts the *area* by ~23% but over-predicts the *mean carbon density*
-of the cleared pixels (149 vs 114 tC/ha, because it preferentially flags
-denser, higher-NDVI forest as loss), and the two errors offset in the CO2
-total. The linear-regression variant does not show the same cancellation
-(25,591 t, +19%), and the full-region prediction under-shoots the reference
-by ~0% only because the same two biases scale together. The robust, model-free
-comparison is 3-bin vs regression on the *same* pixel set: on the GFC reference
-area the exponential regression gives 94,273 t CO2 versus 116,699 t from the
-3-bin scheme (~19% lower), because most cleared pixels have moderate NDVI and
-the flat 150 tC/ha "moderate" constant over-credits them.
+**Held-out headline:** 37.3 ha of predicted new loss -> **~17,900 t CO2**
+(primary regression), i.e. **0.83x** the ~21,500 t CO2 on the GFC reference
+area for the same region. The CO2 ratio (0.83) is less extreme than the area
+ratio (0.73) because the model under-counts *area* but over-counts *mean carbon
+density* (131 vs 114 tC/ha - it preferentially flags denser, higher-NDVI
+forest), so the two biases partly offset. Neither the area nor the CO2 total is
+independent evidence of accuracy.
+
+The robust, model-free comparison is **3-bin vs regression on the same pixel
+set**: on the GFC reference area the exponential regression gives 94,273 t CO2
+versus 116,699 t from the 3-bin scheme (**~19% lower**), because most cleared
+pixels have moderate NDVI and the flat 150 tC/ha "moderate" constant
+over-credits them. This is the carbon-step contribution and does not depend on
+the segmentation model or the seed.
 
 ### 5.5 CO2 plausibility check (Global Forest Watch, Wayanad district)
 
 GFW reports 3.82 kha of tree-cover loss and 2.54 Mt CO2e for Wayanad district
 (2001-2023, 30% canopy, all pools, all gases; Harris et al. 2021) -> an
 implied committed emission factor of **~665 t CO2e/ha** and ~166 ha/yr of loss
-district-wide. This study's 848 km2 tile shows ~119 ha/yr (GFC) / ~82 ha/yr
+district-wide. This study's 848 km2 tile shows ~119 ha/yr (GFC) / ~83 ha/yr
 (predicted) - the tile is ~40% of the district area but carries ~70% of its
 GFC loss, being centred on the loss-active plateau.
 
 - On the **GFC reference area**, this pipeline's factor is 94,273 t CO2 /
   237.4 ha = **~397 t CO2/ha**, i.e. **~60% of GFW's ~665 t CO2e/ha** - the
   expected fraction for an aboveground-only, CO2-only accounting once GFW's
-  soil, belowground and non-CO2 pools are set aside. This figure is unchanged
-  by the leakage fix (it depends only on GFC and the regression).
-- On the **model-predicted area** the factor rises to 94,778 / 164.5 =
-  ~576 t CO2/ha, because the leak-free model is biased toward denser forest
-  (Section 5.4). This bias was partly masked in the pre-audit results.
-
-The pipeline is therefore within a well-understood factor of the published
-figure on the reference area; the model-predicted number additionally carries
-the density bias.
+  soil, belowground and non-CO2 pools are set aside. This figure depends only
+  on GFC and the regression - not the model, the seed or the leakage fix.
+- On the **model-predicted area** the factor is 82,261 / 165.7 = ~496 t CO2/ha,
+  elevated by the model's density bias (Section 5.4).
 
 ### 5.6 Data-leakage audit and correction
 
@@ -333,33 +346,60 @@ patch was involved; the leak was entirely from the overlap crops.
 val/test block is dropped, not reassigned. The canonical grid, the
 block-to-split assignment, the norm statistics and the val/test patches are
 byte-identical before and after (verified by hash). Overlap crops fell from 228
-to 185 (train patches 304 -> 261). The audit script now exits 0. Both models
-were retrained with byte-identical configs (same seed, schedule, loss,
-`pos_weight`) and the threshold was re-tuned on validation; Sections 5.1-5.5,
-Phase 5 inference and Phase 6 carbon were fully re-run.
+to 185 (train patches 304 -> 261). The audit script now exits 0.
 
-**Before / after (held-out test split).**
+**Before / after (held-out test split).** The pre-audit column is a single
+80-epoch run on the leaked split; the post-audit column is the 3-seed mean +/-
+sd (segmentation) and the seed-43 carry-forward checkpoint (area / CO2).
 
-| Quantity | Pre-audit (leaked) | Post-audit (clean) |
+| Quantity | Pre-audit (leaked, 1 run) | Post-audit (clean, 3 seeds / seed 43) |
 |---|---|---|
 | Train patches | 304 (76 + 228 overlap) | 261 (76 + 185 overlap) |
 | Val/test patches with train pixels | 8/16 val, 9/18 test | 0/16, 0/18 |
-| Best val Dice - U-Net | 0.317 (@ e54) | 0.245 (@ e8) |
-| Best val Dice - Attn U-Net | 0.323 (@ e63) | 0.246 (@ e36) |
-| U-Net test IoU / Dice | 0.196 / 0.327 | **0.161 / 0.278** |
-| Attn U-Net test IoU / Dice | 0.168 / 0.287 | **0.081 / 0.149** |
-| Proposed - baseline test IoU | -0.028 | -0.080 |
-| Predicted test area vs GFC | 49.9 ha (0.97x) | 39.6 ha (0.77x) |
-| Predicted full-region area vs GFC | 279.8 ha (1.18x) | 164.5 ha (0.69x) |
-| Predicted test CO2 (primary reg.) | 19,756 t | 21,645 t |
+| U-Net best val Dice | 0.317 | 0.250 +/- 0.006 |
+| Attn U-Net best val Dice | 0.323 | 0.237 +/- 0.009 |
+| U-Net test IoU / Dice | 0.196 / 0.327 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
+| Attn U-Net test IoU / Dice | 0.168 / 0.287 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
+| Proposed - baseline test IoU | -0.028 | -0.045 (mean); intervals non-overlapping |
+| Predicted test area vs GFC | 49.9 ha (0.97x) | 37.3 ha (0.73x) |
+| Predicted full-region area vs GFC | 279.8 ha (1.18x) | 165.7 ha (0.70x) |
+| Predicted test CO2 (primary reg.) | 19,756 t | 17,918 t |
 | GFC-reference-area CO2 (primary reg.) | 21,507 t | 21,507 t (unchanged) |
 | Pipeline emission factor on GFC area | ~397 t CO2/ha (~60% of GFW) | ~397 t CO2/ha (~60% of GFW) |
 
 The leak had inflated validation Dice (partly memorised pixels), softened the
-architecture comparison (the attention model's collapse was hidden), and made
-the area estimate look like a near-match when it is really a ~20-30%
-under-prediction. The GFC-referenced carbon numbers and the 3-bin-vs-regression
-comparison are unaffected because they never depended on the model.
+architecture comparison (the attention model's poorer generalisation was
+hidden), and made the area estimate look like a near-match when it is really a
+~25-30% under-prediction. The GFC-referenced carbon numbers and the
+3-bin-vs-regression comparison are unaffected because they never depended on
+the model.
+
+### 5.7 Seed-variance analysis
+
+The single-run corrections above still rested on one training run per model,
+and Section 5.6's own numbers showed run-to-run test-IoU swings of ~0.03. Each
+model was therefore trained under 3 seeds (42, 43, 44), early stopping,
+otherwise byte-identical configs.
+
+| | test IoU (per seed) | mean +/- sd |
+|---|---|---|
+| U-Net | 0.165, 0.170, 0.140 | 0.158 +/- 0.016 |
+| Attn U-Net | 0.128, 0.086, 0.125 | 0.113 +/- 0.023 |
+
+- **Run-to-run seed sd (0.016-0.023 on test IoU) is comparable in magnitude to
+  the mean U-Net - Attn difference (0.045).** Any single-run comparison of
+  these two models is therefore unfalsifiable, which is why headline metrics
+  are reported as mean +/- sd.
+- The mean +/- 1 sd test-IoU intervals do **not** overlap, so the U-Net's
+  advantage is **supported** at that criterion. It is a lenient bar: with n = 3
+  a Welch t-test gives t = 2.75, p ~ 0.06 - the difference is probably real but
+  not established at p < 0.05.
+- **Early stopping confirmed rather than resolved the overfitting.** Best
+  validation Dice lands at epoch 1, 7 and 8 for the three U-Net seeds and 15,
+  17 and 35 for the attention seeds - always early, regardless of the 80-epoch
+  `T_max`. This is a direct consequence of 261 training patches at ~0.3%
+  positive prevalence: there is very little signal to fit before the model
+  starts memorising.
 
 ---
 
@@ -379,21 +419,28 @@ discovered afterward:
 - **Aboveground, CO2-only, committed emission.** No belowground / deadwood /
   litter / soil pools, no non-CO2 gases, no regrowth credit.
 - **Small evaluation set.** 16 validation and 18 test patches make threshold
-  selection and the val-vs-test comparison noisy, and both models overfit
-  against a validation set this size.
+  selection and the model comparison noisy; both models overfit against a
+  validation set this size, and best validation Dice is reached within the
+  first few epochs.
+- **Run-to-run variance ~ the effect size.** The seed sd on test IoU
+  (0.016-0.023) is comparable to the U-Net - Attn mean gap (0.045), so headline
+  metrics are reported as mean +/- sd over 3 seeds and the architecture
+  comparison rests on non-overlapping +/-1 sd intervals (a Welch t gives
+  p ~ 0.06), not a single run.
 - **Coarse labels.** Hansen GFC is a 30 m annual product used on a 10 m grid;
   it bounds achievable IoU well below values reported for hand-digitised
   benchmarks.
 
-The pipeline's honest value after the audit is narrower than the pre-audit
-draft implied: with a per-pixel IoU near 0.16 it produces an **aggregate area
-estimate ~20-30% low** and a **CO2 total that happens to fall near the
-GFC-reference figure through offsetting biases**. What is solid is (a) the
-3-bin -> regression carbon upgrade, which is model-independent and cuts the
-region-wide CO2 estimate by ~19% toward the moist-deciduous field range, (b)
-the GFC-referenced emission factor being a sensible ~60% of the GFW all-pools
-value, and (c) the leakage audit itself as a reusable check
-(`scripts/verify_no_leakage.py`).
+The pipeline's honest value after the audit and the seed analysis is narrower
+than the first draft implied: with a per-pixel IoU near 0.16 it produces an
+**aggregate area estimate ~25-30% low** and a **CO2 total ~17% below the
+GFC-reference figure**, with the CO2 error smaller than the area error only
+because two biases partly offset. What is solid, and independent of the
+segmentation model and the seed, is (a) the 3-bin -> regression carbon upgrade,
+which cuts the region-wide CO2 estimate by ~19% toward the moist-deciduous
+field range, (b) the GFC-referenced emission factor being a sensible ~60% of
+the GFW all-pools value, and (c) the leakage audit and seed protocol as
+reusable checks (`scripts/verify_no_leakage.py`, `scripts/aggregate_seeds.py`).
 
 ---
 
@@ -402,15 +449,17 @@ value, and (c) the leakage audit itself as a reusable check
 We built and end-to-end validated a single pipeline from two Sentinel-2
 composites to a hectares-lost and a tonnes-CO2 figure for a Western Ghats tile,
 and upgraded the carbon step from three hard-coded NDVI constants to a
-regionally-calibrated regression. Under a fair shared schedule the
-attention-gated MobileNetV2 model was clearly worse on the held-out set than a
-plain U-Net; a leakage audit forced a full re-run, after which the pipeline
-under-predicts held-out loss area by ~23% and its CO2 total matches the
-GFC-reference figure only coincidentally. The model-independent results - the
-bins-to-regression carbon reduction and the ~60% emission-factor ratio against
-Global Forest Watch - are the parts to build on. Natural next steps: co-located
-biomass calibration, multi-region evaluation, a larger annotated change set,
-and a recall-oriented loss or threshold to correct the area under-prediction.
+regionally-calibrated regression. Under a fair shared schedule with early
+stopping and 3-seed reporting, the attention-gated MobileNetV2 model scored
+below a plain U-Net on the held-out set (test IoU 0.113 +/- 0.023 vs
+0.158 +/- 0.016, non-overlapping +/-1 sd intervals). A leakage audit and then a
+seed-variance analysis each forced a full re-run; after both, the pipeline
+under-predicts held-out loss area by ~27% and its CO2 total by ~17%. The
+model-independent results - the bins-to-regression carbon reduction (~19%) and
+the ~60% emission-factor ratio against Global Forest Watch - are the parts to
+build on. Natural next steps: co-located biomass calibration, multi-region
+evaluation, a larger annotated change set, and a recall-oriented loss or
+threshold to correct the area under-prediction.
 
 ---
 

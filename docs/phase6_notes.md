@@ -1,10 +1,11 @@
 # Phase 6 - Carbon Estimation Module
 
 > The regression **calibration** (anchors, coefficients, r2) is independent of
-> the train/val/test split and was **unchanged** by the 2026-08 leakage audit.
-> Only the applied CO2 totals for the *model-predicted* pixel sets changed;
-> the Hansen-GFC reference-area totals are identical before and after. See the
-> audit section in `docs/phase7_notes.md`.
+> the train/val/test split, the model and the seed - **unchanged** through the
+> leakage audit, early stopping and the 3-seed protocol. Only the applied CO2
+> totals for the *model-predicted* pixel sets changed; the Hansen-GFC
+> reference-area totals are identical throughout. Numbers below are off the
+> carry-forward U-Net = seed 43. See `docs/phase7_notes.md`.
 
 ## What was built
 
@@ -48,22 +49,22 @@ percentile of this study's own Year-T composite:
   monotone and non-negative by construction.
 - r2 is curve fit on 8 points, **not** held-out accuracy - stated, not hidden.
 
-## Results - tonnes CO2 from 2019-2020 forest loss (post-audit)
+## Results - tonnes CO2 from 2019-2020 forest loss (carry-forward U-Net, seed 43)
 
 | Pixel set | Area (ha) | 3-bin | reg-linear | **reg-exp (primary)** | mean AGC (tC/ha) |
 |---|---|---|---|---|---|
-| **predicted, test region** | 39.6 | 22,343 | 25,591 | **21,645** | 149 |
+| **predicted, test region** | 37.3 | 19,938 | 21,235 | **17,918** | 131 |
 | Hansen GFC, test region (ref) | 51.5 | 25,819 | 24,800 | **21,507** | 114 |
-| predicted, full region | 164.5 | 94,574 | 109,486 | 94,778 | 157 |
+| predicted, full region | 165.7 | 89,314 | 94,541 | 82,261 | 135 |
 | Hansen GFC, full region (ref) | 237.4 | 116,699 | 104,726 | 94,273 | 108 |
 
-**Headline (held-out test region, primary regression):** 39.6 ha of predicted
-new loss -> **~21,600 t CO2**. This lands within ~1% of the Hansen-GFC
-reference-area figure (~21,500 t CO2), but **coincidentally**: the leak-free
-model under-predicts the cleared *area* by ~23% while over-predicting the mean
-carbon density of the pixels it flags (149 vs 114 tC/ha, favouring denser
-higher-NDVI forest), and the two errors offset. The robust, model-free result
-is the next bullet.
+**Headline (held-out test region, primary regression):** 37.3 ha of predicted
+new loss -> **~17,900 t CO2**, i.e. **0.83x** the Hansen-GFC reference-area
+figure (~21,500 t CO2). The CO2 ratio (0.83) is less extreme than the area
+ratio (0.73) because the model under-counts *area* but over-counts *mean carbon
+density* (131 vs 114 tC/ha, favouring denser higher-NDVI forest), so the two
+biases partly offset. Neither the area nor the CO2 total is independent
+evidence of accuracy.
 
 ## Honest read
 
@@ -73,11 +74,10 @@ is the next bullet.
   pixels are moderate-NDVI (mean 0.59) and the 3-bin "moderate" constant
   (150 tC/ha) over-credits them; the continuous curve places them near
   108 tC/ha, closer to the moist-deciduous field values. This is the intended
-  contribution and does not depend on the segmentation model.
-- The *model-predicted* CO2 totals now carry a density bias (mean AGC 149-157
-  vs the GFC pixels' 108-114) because the leak-free U-Net preferentially flags
-  denser forest as loss. The near-equal test-region totals are not evidence of
-  accuracy.
+  contribution and does not depend on the segmentation model or the seed.
+- The *model-predicted* CO2 totals carry a density bias (mean AGC 131-135 vs
+  the GFC pixels' 108-114) because the U-Net preferentially flags denser
+  forest as loss.
 - Simplifications (stated as scope): literature-calibrated not pixel-matched;
   8 anchors; aboveground carbon only; committed-emission accounting (full
   release, no regrowth credit); single sensor / region / window.

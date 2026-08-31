@@ -64,19 +64,22 @@ configs/            YAML configs per experiment
 
 ## Phase status
 
-Numbers below are the **post-leakage-audit re-run** (see `docs/phase7_notes.md`
-and `report.md` §5.6; pre-audit values are in git history at `c9947eb`).
+Numbers below are the **leak-free split, early stopping, 3-seed protocol**
+(segmentation = mean ± sd over seeds 42/43/44; area/CO₂ = carry-forward U-Net
+seed 43, chosen on validation only). Full history and before/after in
+`docs/phase7_notes.md` and `report.md` §5.6–5.7; superseded values in git
+history (`c9947eb`, `82f6948`).
 
 | Phase | Description | Status |
 |------:|-------------|--------|
 | 1 | Environment & scope | done |
 | 2 | Data acquisition & preprocessing | done — 261 train / 16 val / 18 test patches |
-| 3 | Baseline standard U-Net | done — test IoU 0.161, Dice 0.278 |
-| 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.081, Dice 0.149 (clearly worse than baseline) |
-| 5 | Change detection & area computation | done — test region 39.6 ha predicted vs 51.5 ha GFC (0.77×, −23%) |
+| 3 | Baseline standard U-Net | done — test IoU 0.158 ± 0.016, Dice 0.273 ± 0.024 |
+| 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.113 ± 0.023 (below baseline; ±1 sd intervals non-overlapping) |
+| 5 | Change detection & area computation | done — test region 37.3 ha predicted vs 51.5 ha GFC (0.73×, −27%) |
 | 6 | Carbon estimation module | done — GFC ref area: regression 94.3 ktCO₂ vs 3-bin 116.7 ktCO₂ (~19% lower) |
-| 7 | Evaluation, validation & short paper | done — `report.md`, leakage audit, CO₂ sanity-check vs GFW |
-| audit | Data-leakage fix + full re-run | done — `scripts/verify_no_leakage.py` exits 0 |
+| 7 | Evaluation, validation & short paper | done — `report.md`, leakage audit, seed-variance analysis, CO₂ sanity-check vs GFW |
+| audit | Leakage fix + multi-seed re-run | done — `scripts/verify_no_leakage.py` exits 0; `scripts/aggregate_seeds.py` |
 
 ## Ground rules
 

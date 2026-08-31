@@ -192,22 +192,27 @@ def main() -> None:
     gh = e["gfc_test"]["regression_exponential_primary"]
     gf = e["gfc_full_region"]["regression_exponential_primary"]
     tbf = e["gfc_full_region"]["three_bin_baseline"]
+    co2_ratio = ph["tCO2"] / gh["tCO2"]
+    area_ratio = e["predicted_test"]["area_ha"] / e["gfc_test"]["area_ha"]
     L += ["",
           f"**Headline (held-out test region, primary regression):** predicted "
           f"loss of {e['predicted_test']['area_ha']:.1f} ha -> "
           f"**{ph['tCO2']:,.0f} t CO2** "
           f"(mean {ph['mean_AGC_tC_ha']:.0f} tC/ha). The Hansen-GFC reference "
           f"area for the same region gives {gh['tCO2']:,.0f} t CO2 "
-          f"(mean {gh['mean_AGC_tC_ha']:.0f} tC/ha).",
+          f"(mean {gh['mean_AGC_tC_ha']:.0f} tC/ha) - the model estimate is "
+          f"{co2_ratio:.2f}x the reference.",
           "",
-          f"The near-equal totals are **coincidental**: the model under-predicts "
-          f"the cleared *area* ({e['predicted_test']['area_ha']:.1f} vs "
-          f"{e['gfc_test']['area_ha']:.1f} ha) but over-predicts the mean carbon "
-          f"density of the pixels it does flag ({ph['mean_AGC_tC_ha']:.0f} vs "
-          f"{gh['mean_AGC_tC_ha']:.0f} tC/ha, because it favours denser "
-          f"higher-NDVI forest), and the two errors offset in the CO2 total. "
-          f"The model-independent comparison is 3-bin vs regression on the same "
-          f"pixels: on the GFC reference area the exponential regression gives "
+          f"Two biases act in opposite directions: the model under-predicts the "
+          f"cleared *area* ({area_ratio:.2f}x: "
+          f"{e['predicted_test']['area_ha']:.1f} vs {e['gfc_test']['area_ha']:.1f} "
+          f"ha) but over-predicts the mean carbon density of the pixels it does "
+          f"flag ({ph['mean_AGC_tC_ha']:.0f} vs {gh['mean_AGC_tC_ha']:.0f} tC/ha, "
+          f"because it favours denser higher-NDVI forest), so the CO2 ratio "
+          f"({co2_ratio:.2f}x) is less extreme than the area ratio. Neither the "
+          f"area nor the CO2 total is independent evidence of accuracy. The "
+          f"model-free comparison is 3-bin vs regression on the same pixels: on "
+          f"the GFC reference area the exponential regression gives "
           f"{gf['tCO2']:,.0f} t CO2 vs {tbf['tCO2']:,.0f} t from the 3-bin "
           f"scheme (~{100 * (1 - gf['tCO2'] / tbf['tCO2']):.0f}% lower), because "
           f"most cleared pixels sit at moderate NDVI where the flat 150 tC/ha "

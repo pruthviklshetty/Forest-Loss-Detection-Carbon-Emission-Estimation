@@ -106,7 +106,7 @@ def main() -> None:
 
     result = {
         "experiment": args.experiment,
-        "checkpoint": str(ckpt_path.relative_to(RESULTS.parent)),
+        "checkpoint": ckpt_path.relative_to(RESULTS.parent).as_posix(),
         "checkpoint_epoch": ckpt["epoch"],
         "n_params": ckpt.get("n_params"),
         "device": device,
