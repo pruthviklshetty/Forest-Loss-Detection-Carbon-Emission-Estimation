@@ -21,12 +21,15 @@
 
 ## Results - area lost 2019-2020
 
-| Region | Hansen GFC (ha) | Predicted (ha) | Pred - GFC | Pred / GFC | pixel IoU |
-|---|---|---|---|---|---|
-| **test only (held out)** | **51.5** | **37.3** | **-14.2** | **0.73x** | 0.169 |
-| val only | 29.8 | 26.3 | -3.5 | 0.88x | 0.149 |
-| train only | 131.7 | 87.0 | -44.7 | 0.66x | 0.103 |
-| full region | 237.4 | 165.7 | -71.7 | 0.70x | 0.132 |
+Pixel IoU is strict (primary) / tolerance (+/-3 px GFC-cell GT dilation, strict
+union; secondary, same definition as `src/eval/evaluate.py`).
+
+| Region | Hansen GFC (ha) | Predicted (ha) | Pred - GFC | Pred / GFC | strict IoU | tol IoU |
+|---|---|---|---|---|---|---|
+| **test only (held out)** | **51.5** | **37.3** | **-14.2** | **0.73x** | 0.169 | 0.260 |
+| val only | 29.8 | 26.3 | -3.5 | 0.88x | 0.149 | 0.219 |
+| train only | 131.7 | 87.0 | -44.7 | 0.66x | 0.103 | 0.175 |
+| full region | 237.4 | 165.7 | -71.7 | 0.70x | 0.132 | 0.208 |
 
 ## Honest read
 

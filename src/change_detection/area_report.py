@@ -23,6 +23,7 @@ import json
 
 import numpy as np
 import rasterio
+from scipy.ndimage import binary_dilation
 
 import matplotlib
 matplotlib.use("Agg")
@@ -37,6 +38,8 @@ OUT = RESULTS / "deforestation"
 FIG = RESULTS / "figures"
 GSD = 10
 HA_PER_PX = GSD * GSD / 1e4          # 0.01 ha
+_DILATE_PX = 3                       # one 30 m Hansen GFC cell at the 10 m GSD
+_DILATE_STRUCT = np.ones((2 * _DILATE_PX + 1, 2 * _DILATE_PX + 1), dtype=bool)
 
 
 def _read(path, band=1):
@@ -56,19 +59,28 @@ def _split_map(H, W):
     return sm
 
 
-def _confusion(pred, gt, mask):
+def _confusion(pred, gt, mask, gt_dil=None):
     p = pred[mask].astype(bool)
     g = gt[mask].astype(bool)
     tp = int((p & g).sum()); fp = int((p & ~g).sum())
     fn = int((~p & g).sum()); tn = int((~p & ~g).sum())
     eps = 1e-9
-    return {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
-            "iou": tp / (tp + fp + fn + eps),
-            "dice": 2 * tp / (2 * tp + fp + fn + eps),
-            "precision": tp / (tp + fp + eps),
-            "recall": tp / (tp + fn + eps),
-            "pred_ha": (tp + fp) * HA_PER_PX,
-            "gt_ha": (tp + fn) * HA_PER_PX}
+    out = {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
+           "iou": tp / (tp + fp + fn + eps),
+           "dice": 2 * tp / (2 * tp + fp + fn + eps),
+           "precision": tp / (tp + fp + eps),
+           "recall": tp / (tp + fn + eps),
+           "pred_ha": (tp + fp) * HA_PER_PX,
+           "gt_ha": (tp + fn) * HA_PER_PX}
+    out["strict_iou"] = out["iou"]
+    if gt_dil is not None:
+        # tolerance IoU: intersection vs GT dilated by one 30 m GFC cell
+        # (+/-3 px), strict undilated union - consistent with src/eval/evaluate.py
+        gd = gt_dil[mask].astype(bool)
+        tol_inter = int((p & gd).sum())
+        union = tp + fp + fn
+        out["tolerance_iou"] = tol_inter / (union + eps)
+    return out
 
 
 def main() -> None:
@@ -88,6 +100,7 @@ def main() -> None:
 
     sm = _split_map(H, W)
     thr = float(json.loads((RESULTS / "metrics" / f"{exp}.json").read_text())["operating_threshold"])
+    gt_dil = binary_dilation(gt.astype(bool), structure=_DILATE_STRUCT)
 
     regions = {
         "test_only": (sm == "test") & valid,
@@ -97,12 +110,17 @@ def main() -> None:
         "full_region": valid,
     }
     summary = {"experiment": exp, "operating_threshold": thr,
-               "gsd_m": GSD, "ha_per_pixel": HA_PER_PX, "regions": {}}
+               "gsd_m": GSD, "ha_per_pixel": HA_PER_PX,
+               "tolerance_iou_dilation_px": _DILATE_PX,
+               "tolerance_iou_note": "intersection vs GFC GT dilated one 30 m cell "
+                                     "(7x7, +/-3 px); strict undilated union; "
+                                     "secondary, strict_iou is primary",
+               "regions": {}}
     for name, m in regions.items():
-        c = _confusion(pred, gt, m)
+        c = _confusion(pred, gt, m, gt_dil)
         c["pred_minus_gt_ha"] = round(c["pred_ha"] - c["gt_ha"], 2)
         c["pred_over_gt_ratio"] = round(c["pred_ha"] / c["gt_ha"], 3) if c["gt_ha"] else None
-        for k in ("iou", "dice", "precision", "recall"):
+        for k in ("iou", "strict_iou", "tolerance_iou", "dice", "precision", "recall"):
             c[k] = round(c[k], 4)
         c["pred_ha"] = round(c["pred_ha"], 2)
         c["gt_ha"] = round(c["gt_ha"], 2)
@@ -172,20 +190,25 @@ def main() -> None:
          f"are averaged, thresholded at the val-tuned **{thr:.2f}**, and masked "
          f"to valid land.\n",
          f"Pixel -> area: 10 m GSD, {HA_PER_PX} ha per pixel.\n",
-         "| Region | GFC ref (ha) | Predicted (ha) | Pred - GFC (ha) | Pred/GFC | IoU | Dice | Precision | Recall |",
-         "|---|---|---|---|---|---|---|---|---|"]
+         f"Pixel IoU is reported strict (primary) and tolerance (+/-3 px GFC-cell "
+         f"GT dilation, strict union; secondary, consistent with "
+         f"`src/eval/evaluate.py`).\n",
+         "| Region | GFC ref (ha) | Predicted (ha) | Pred - GFC (ha) | Pred/GFC | strict IoU | tol IoU | Dice | Precision | Recall |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
     for n in ["test_only", "val_only", "train_only", "canonical_all", "full_region"]:
         c = R[n]
         L.append(f"| {n} | {c['gt_ha']:.1f} | {c['pred_ha']:.1f} | "
                  f"{c['pred_minus_gt_ha']:+.1f} | {c['pred_over_gt_ratio']} | "
-                 f"{c['iou']:.3f} | {c['dice']:.3f} | {c['precision']:.3f} | {c['recall']:.3f} |")
+                 f"{c['strict_iou']:.3f} | {c['tolerance_iou']:.3f} | "
+                 f"{c['dice']:.3f} | {c['precision']:.3f} | {c['recall']:.3f} |")
     L += ["",
           f"**Headline (held-out test region):** predicted "
           f"**{R['test_only']['pred_ha']:.1f} ha** vs Hansen GFC "
           f"**{R['test_only']['gt_ha']:.1f} ha** "
           f"({R['test_only']['pred_over_gt_ratio']:.2f}x; "
-          f"{R['test_only']['pred_minus_gt_ha']:+.1f} ha), pixel IoU "
-          f"{R['test_only']['iou']:.3f}.",
+          f"{R['test_only']['pred_minus_gt_ha']:+.1f} ha), strict pixel IoU "
+          f"{R['test_only']['strict_iou']:.3f} (tolerance "
+          f"{R['test_only']['tolerance_iou']:.3f}).",
           "",
           "`full_region` and `train_only` include pixels the model was trained "
           "on and overstate agreement; `test_only` is the honest number.",
@@ -199,7 +222,8 @@ def main() -> None:
     for n in ["test_only", "val_only", "train_only", "full_region"]:
         c = R[n]
         print(f"  {n:14s}  GFC {c['gt_ha']:7.1f} ha | pred {c['pred_ha']:7.1f} ha "
-              f"({c['pred_over_gt_ratio']}x)  IoU {c['iou']:.3f}")
+              f"({c['pred_over_gt_ratio']}x)  IoU {c['strict_iou']:.3f} strict / "
+              f"{c['tolerance_iou']:.3f} tol")
     print(f"\n-> {OUT / (exp + '_area_summary.json')}")
     print(f"-> {OUT / 'summary.md'}")
     print("-> results/figures/phase5_deforestation_map.png , phase5_hectares.png")

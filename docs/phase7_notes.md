@@ -39,11 +39,13 @@
 | best val Dice | 0.250 +/- 0.006 | 0.237 +/- 0.009 |
 
 Per-seed strict test IoU: U-Net 0.165 / 0.170 / 0.139; Attn 0.128 / 0.087 /
-0.125. Mean +/- 1 sd strict intervals: U-Net [0.142, 0.174], Attn
-[0.090, 0.136] - **do not overlap** -> U-Net advantage **supported** at that
-criterion (Welch t = 2.75, p ~ 0.06; n = 3). Tolerance IoU (GT dilated one
-30 m GFC cell / +/-3 px; strict union; secondary, never replaces strict) is
-0.248 +/- 0.018 vs 0.199 +/- 0.037 - same ordering, non-overlapping.
+0.125. The Attention U-Net + MobileNetV2 **did not improve on the plain U-Net**;
+the plain U-Net is the pipeline segmenter (single-model paper). The attention
+model's code, checkpoints and `seed_runs.json` entries are kept as a recorded
+negative result. No statistical architecture comparison is made - the seed sd
+is large relative to the difference (see the seed-variance section). Tolerance
+IoU (GT dilated one 30 m GFC cell / +/-3 px; strict union; secondary, never
+replaces strict): U-Net 0.248 +/- 0.018, Attn 0.199 +/- 0.037.
 
 ### Pipeline - carry-forward U-Net (seed 43, op threshold 0.92)
 
@@ -89,18 +91,14 @@ byte-identical before/after: canonical grid, block-to-split assignment,
 ## Seed-variance analysis
 
 Post-audit, Section 5.6's own numbers showed run-to-run test-IoU swings of
-~0.03, so a single training run per model still could not support the
-comparison. Each model was retrained under **3 seeds (42/43/44)** with early
-stopping, otherwise byte-identical configs; `scripts/aggregate_seeds.py` ->
-`results/metrics/seed_runs.json`.
+~0.03, so a single training run could not be treated as the model's score. The
+U-Net was retrained under **3 seeds (42/43/44)** with early stopping, otherwise
+byte-identical configs (the attention model was run the same way);
+`scripts/aggregate_seeds.py` -> `results/metrics/seed_runs.json`.
 
-- **Seed sd on test IoU is 0.016 (U-Net) / 0.023 (Attn) - comparable to the
-  mean U-Net - Attn gap (0.045).** Any single-run comparison of the two models
-  is unfalsifiable; headline metrics are therefore mean +/- sd.
-- The mean +/- 1 sd test-IoU intervals do **not** overlap -> the U-Net's
-  advantage is **supported** by that criterion. It is a lenient bar: with n = 3
-  a Welch t-test gives t = 2.75, p ~ 0.06 - probably real, not established at
-  p < 0.05.
+- **Seed sd on strict test IoU is 0.016 (U-Net) / 0.023 (Attn)** - large
+  relative to the metric. Every segmentation number in the paper is reported as
+  mean +/- sd over the 3 seeds rather than from one run.
 - **Early stopping confirmed rather than resolved the overfitting.** Best
   validation Dice lands at epochs 1/7/8 (U-Net seeds) and 15/17/35 (Attn seeds)
   - always early, regardless of the 80-epoch `T_max`. A direct consequence of
@@ -115,8 +113,7 @@ stopping, otherwise byte-identical configs; `scripts/aggregate_seeds.py` ->
 | U-Net best val Dice | 0.317 | 0.245 | 0.250 +/- 0.006 |
 | U-Net test IoU (strict) / Dice | 0.196 / 0.327 | 0.161 / 0.278 | **0.158 +/- 0.016 / 0.273 +/- 0.024** |
 | U-Net test IoU (+/-3 px tolerance) | not computed | not computed | 0.248 +/- 0.018 |
-| Attn U-Net test IoU (strict) / Dice | 0.168 / 0.287 | 0.081 / 0.149 | **0.113 +/- 0.023 / 0.203 +/- 0.038** |
-| Proposed - baseline strict test IoU | -0.028 | -0.080 | -0.045 (intervals non-overlapping) |
+| Attn U-Net test IoU (strict) / Dice (recorded) | 0.168 / 0.287 | 0.081 / 0.149 | 0.113 +/- 0.023 / 0.203 +/- 0.038 |
 | Predicted test area vs GFC | 49.9 ha (0.97x) | 39.6 ha (0.77x) | **37.3 ha (0.73x)** |
 | Predicted full-region area vs GFC | 279.8 ha (1.18x) | 164.5 ha (0.69x) | 165.7 ha (0.70x) |
 | Predicted test CO2 (primary reg.) | 19,756 t | 21,645 t | **17,918 t** |
@@ -125,8 +122,9 @@ stopping, otherwise byte-identical configs; `scripts/aggregate_seeds.py` ->
 
 ## Honest position (in the paper)
 
-- The segmentation architecture is **not** a contribution: the attention model
-  scores below the plain U-Net, with non-overlapping +/-1 sd intervals.
+- This is a **single-model pipeline paper** (plain U-Net). The Attention U-Net
+  + MobileNetV2 was tried, did not improve on the plain U-Net, and is kept only
+  as a recorded negative result - no architecture claim is made either way.
 - **Model/seed-independent results** are the ones to build on: the
   bins -> regression carbon upgrade (~19% lower region-wide CO2) and the ~60%
   emission-factor ratio vs GFW.
@@ -134,9 +132,9 @@ stopping, otherwise byte-identical configs; `scripts/aggregate_seeds.py` ->
   the CO2 error is smaller only because area and density biases partly offset.
 - Simplifications stated up front as scope: single sensor, one region, one
   2-year window, literature-calibrated (not pixel-matched) carbon,
-  aboveground/CO2-only committed emission, 16/18-patch eval splits on which
-  both models overfit within a few epochs, 30 m labels on a 10 m grid,
-  run-to-run seed variance ~ the architecture effect size.
+  aboveground/CO2-only committed emission, a 16/18-patch eval split on which
+  the U-Net overfits within a few epochs, 30 m labels on a 10 m grid,
+  run-to-run seed sd of 0.016-0.023 on test IoU.
 - The leakage audit, the seed protocol and their open before/after reporting
   are themselves methodological strengths;
   `scripts/verify_no_leakage.py` and `scripts/aggregate_seeds.py` are reusable.

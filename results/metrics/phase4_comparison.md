@@ -1,8 +1,10 @@
-# Phase 4 - Standard U-Net vs Attention U-Net + MobileNetV2
+# Phase 4 - plain U-Net vs Attention U-Net + MobileNetV2 (recorded)
 
-**Headline = mean +/- sd across seeds [42, 43, 44]** (early stopping, patience 15; configs otherwise byte-identical). Per-seed values in `results/metrics/seed_runs.json`.
+Single-model pipeline paper: the plain U-Net is the pipeline segmenter. The Attention U-Net + MobileNetV2 was trained under an identical schedule and **did not improve on the plain U-Net**; it is kept as a recorded negative result. No statistical architecture comparison is made.
 
-| Metric | U-Net (baseline) | Attn U-Net + MNv2 |
+**Mean +/- sd across seeds [42, 43, 44]** (early stopping, patience 15; configs otherwise byte-identical). Per-seed values in `results/metrics/seed_runs.json`.
+
+| Metric | plain U-Net (pipeline) | Attn U-Net + MNv2 (recorded) |
 |---|---|---|
 | **test IoU (strict, primary)** | 0.158 +/- 0.016 | 0.113 +/- 0.023 |
 | test IoU (+/-3 px tolerance, secondary) | 0.248 +/- 0.018 | 0.199 +/- 0.037 |
@@ -11,7 +13,7 @@
 | test recall | 0.231 +/- 0.026 | 0.202 +/- 0.051 |
 | best val Dice | 0.250 +/- 0.006 | 0.237 +/- 0.009 |
 
-Test-IoU values: U-Net [0.1649, 0.1695, 0.1393], Attn [0.1281, 0.0865, 0.1249]. Mean +/- 1 sd intervals **do NOT overlap** -> the U-Net > Attn difference is **supported** by this criterion (n=3 per group; a lenient bar - see docs/phase7_notes.md).
+Per-seed strict test IoU: U-Net [0.1649, 0.1695, 0.1393], Attn [0.1281, 0.0865, 0.1249]. The seed sd (0.016-0.023) is large relative to the metric; every number is a 3-seed mean +/- sd, not a single run.
 
 ---
 

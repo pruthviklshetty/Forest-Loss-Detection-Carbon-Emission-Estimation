@@ -69,12 +69,12 @@ collapses (IoU 0.065).
   improves - early stopping confirms rather than fixes the overfitting. With
   261 train patches at ~0.3% positive prevalence there is little signal to fit
   before the model memorises.
-- **Run-to-run seed sd (~0.016 on test IoU) is the size of the U-Net vs
-  Attention gap** - see `docs/phase4_notes.md`; single-run numbers are
-  unfalsifiable, hence mean +/- sd.
+- **Run-to-run seed sd is 0.016 on strict test IoU** - large relative to the
+  metric, so every segmentation number is a 3-seed mean +/- sd, not a single
+  run.
 
 ## Needed before Phase 4
 
-Nothing external. Phase 4 = Attention U-Net + MobileNetV2, same schedule + 3
-seeds, mean +/- sd comparison + interval-overlap test vs the baseline and vs
-John & Zhang (2022).
+Nothing external. Phase 4 = train an Attention U-Net + MobileNetV2 under the
+same schedule + 3 seeds as a recorded comparison point (it did not improve on
+the plain U-Net; `docs/phase4_notes.md`).

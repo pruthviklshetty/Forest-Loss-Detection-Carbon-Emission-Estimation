@@ -237,7 +237,6 @@
         0.92,
         0.92
       ]
-    },
-    "test_iou_intervals_overlap": false
+    }
   }
 }

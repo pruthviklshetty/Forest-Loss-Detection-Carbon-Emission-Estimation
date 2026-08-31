@@ -96,21 +96,11 @@ def main() -> None:
               f"{cell('test_dice'):>16s} {cell('test_precision'):>16s} "
               f"{cell('test_recall'):>16s} {cell('best_val_dice'):>16s}")
 
-    print("\nStrict test-IoU interval overlap (mean +/- 1 sd):")
-    lo, hi = {}, {}
+    print("\nPer-seed strict test IoU (single-model pipeline; the attention "
+          "model is a recorded negative result, no significance test):")
     for stem in MODELS:
-        m, sd = _ms(per_model_iou[stem])
-        lo[stem], hi[stem] = m - sd, m + sd
-        print(f"  {MODELS[stem]:22s} [{lo[stem]:.4f}, {hi[stem]:.4f}]  "
-              f"(values {[round(v,4) for v in per_model_iou[stem]]})")
-    a, b = list(MODELS)
-    overlap = not (hi[a] < lo[b] or hi[b] < lo[a])
-    verdict = ("OVERLAP -> difference NOT supported at +/-1 sd"
-               if overlap else
-               "NO OVERLAP -> difference supported at +/-1 sd")
-    out["summary"]["test_iou_intervals_overlap"] = overlap
-    (MET / "seed_runs.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
-    print(f"\n  => {verdict}")
+        print(f"  {MODELS[stem]:22s} {[round(v, 4) for v in per_model_iou[stem]]}  "
+              f"mean {_ms(per_model_iou[stem])[0]:.4f} sd {_ms(per_model_iou[stem])[1]:.4f}")
     print(f"\n-> {MET / 'seed_runs.json'}")
 
 
