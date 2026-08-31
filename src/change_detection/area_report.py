@@ -181,10 +181,10 @@ def main() -> None:
     # ---- markdown ----
     R = summary["regions"]
     L = ["# Phase 5 - Change Detection & Area Computation\n",
-         f"Model: **{exp}**. Model choice is independent of test performance: "
-         f"validation was a near-tie between the two models, and the plain "
-         f"U-Net was carried forward for a simpler architecture with no "
-         f"pretrained-RGB-encoder mismatch against the 8-band stack. "
+         f"Model: **{exp}** = the plain U-Net seed with the median best "
+         f"validation Dice (seed 43); selection is on validation only, test "
+         f"metrics are never used. The plain U-Net (not the Attention U-Net + "
+         f"MobileNetV2, which did not improve on it) is the pipeline segmenter. "
          f"One forward pass on the 8-band bi-temporal stack yields the "
          f"newly-deforested mask directly; overlapping 256 px tiles (stride 128) "
          f"are averaged, thresholded at the val-tuned **{thr:.2f}**, and masked "

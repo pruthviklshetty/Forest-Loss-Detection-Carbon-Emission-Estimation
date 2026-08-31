@@ -1,6 +1,6 @@
 # Phase 5 - Change Detection & Area Computation
 
-Model: **baseline_unet**. Model choice is independent of test performance: validation was a near-tie between the two models, and the plain U-Net was carried forward for a simpler architecture with no pretrained-RGB-encoder mismatch against the 8-band stack. One forward pass on the 8-band bi-temporal stack yields the newly-deforested mask directly; overlapping 256 px tiles (stride 128) are averaged, thresholded at the val-tuned **0.92**, and masked to valid land.
+Model: **baseline_unet** = the plain U-Net seed with the median best validation Dice (seed 43); selection is on validation only, test metrics are never used. The plain U-Net (not the Attention U-Net + MobileNetV2, which did not improve on it) is the pipeline segmenter. One forward pass on the 8-band bi-temporal stack yields the newly-deforested mask directly; overlapping 256 px tiles (stride 128) are averaged, thresholded at the val-tuned **0.92**, and masked to valid land.
 
 Pixel -> area: 10 m GSD, 0.01 ha per pixel.
 

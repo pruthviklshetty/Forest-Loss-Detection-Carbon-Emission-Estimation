@@ -74,9 +74,9 @@ history (`c9947eb`, `82f6948`).
 |------:|-------------|--------|
 | 1 | Environment & scope | done |
 | 2 | Data acquisition & preprocessing | done — 261 train / 16 val / 18 test patches |
-| 3 | Baseline standard U-Net | done — test IoU 0.158 ± 0.016, Dice 0.273 ± 0.024 |
+| 3 | Baseline standard U-Net | done — test strict IoU 0.158 ± 0.016 (tolerance IoU 0.248 ± 0.018), Dice 0.273 ± 0.024 |
 | 4 | Attention U-Net + MobileNetV2 | done — test IoU 0.113 ± 0.023; did not improve on the plain U-Net, kept as a recorded negative result |
-| 5 | Change detection & area computation | done — test region 37.3 ha predicted vs 51.5 ha GFC (0.73×, −27%) |
+| 5 | Change detection & area computation | done — test region 37.3 ha predicted vs 51.5 ha GFC (0.73×, −27%); pixel IoU 0.169 strict / 0.260 tolerance |
 | 6 | Carbon estimation module | done — GFC ref area: regression 94.3 ktCO₂ vs 3-bin 116.7 ktCO₂ (~19% lower) |
 | 7 | Evaluation, validation & short paper | done — `report.md`, leakage audit, seed-variance analysis, CO₂ sanity-check vs GFW |
 | audit | Leakage fix + multi-seed re-run | done — `scripts/verify_no_leakage.py` exits 0; `scripts/aggregate_seeds.py` |
