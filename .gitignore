@@ -35,10 +35,11 @@ data/processed/*
 results/figures/*.png
 !results/figures/.gitkeep
 
-# OS
+# OS / Office temp files
 .DS_Store
 Thumbs.db
+~$*
 
-.report.docx
-.report.md
-.docs
+# Paper draft and phase notes - kept local, not tracked
+/report.*
+/docs/
