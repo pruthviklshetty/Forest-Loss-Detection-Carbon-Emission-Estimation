@@ -113,6 +113,7 @@ uvicorn serve.main:app --reload --port 8000
 |---|---|---|
 | `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key (`GEE_KEY_PATH` also accepted) |
 | `EE_PROJECT` | key `project_id` / region.yaml | Earth Engine cloud project |
+| `SERVE_CHECKPOINT_STEM` | `p8_pooled_unet_s44` | which trained model to serve: `p8_pooled_unet_s44` = 2019→2021 (paper basis, default), `p10_pooled_unet_s43` = 2021→2023. The results page states the training window either way. |
 | `SERVE_MAX_AREA_KM2` | `900` | raw-bbox path: reject areas larger than this |
 | `SERVE_MAX_RADIUS_KM` | `20` | point path: max radius |
 | `SERVE_SMALL_AREA_KM2` | `25` | flag results below this with the low-signal caveat |
