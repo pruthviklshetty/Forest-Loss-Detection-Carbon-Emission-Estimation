@@ -39,6 +39,7 @@ data/processed/*
 
 # Results binaries (keep metrics JSON/CSV and markdown, ignore heavy figures if needed)
 results/figures/*.png
+results/metrics/phase8_train_log.txt
 !results/figures/.gitkeep
 
 # OS / Office temp files
