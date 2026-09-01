@@ -173,13 +173,20 @@ the repo as a Blueprint, then set the three `sync: false` vars in the dashboard:
 Backend service details (also in `render.yaml`):
 
 - **Runtime:** Python 3.11 (`PYTHON_VERSION=3.11.9`).
-- **Build:** CPU-only torch first, then the pinned deps —
-  `pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 torchvision==0.20.1 && pip install -r requirements.txt -r backend/requirements.txt`.
-  (PyPI's default `torch` wheel is the ~2.5 GB CUDA build; the CPU index avoids it.)
+- **Build:** `pip install -r requirements-deploy.txt` — a strict subset of the
+  root `requirements.txt` containing only what the serving path imports. It
+  drops `torchvision`, `segmentation-models-pytorch` and `timm` (the plain
+  U-Net needs none of them; they are only pulled in by the attention model,
+  which the backend never builds) and the training / offline-analysis packages
+  (`scipy`, `pandas`, `scikit-learn`, `shapely`, `pyproj`, `opencv`,
+  `matplotlib`). `torch` is pinned to the same version as local dev (2.5.1) via
+  a direct CPU-wheel URL — PyTorch's CPU package *index* has aged 2.5.1 out of
+  its listing, but the wheel file is still served (~180 MB vs the ~2.5 GB CUDA
+  wheel on PyPI). Root `requirements.txt` is untouched.
 - **Start:** `uvicorn serve.main:app --host 0.0.0.0 --port $PORT --app-dir backend`.
 - **Health check:** `/health`.
 - **Job scratch:** `SERVE_JOBS_DIR=/tmp/forestloss_jobs` (ephemeral, per-job dirs
-  removed as results serialize — see below).
+  removed after each job — see below).
 
 ### Memory (measured locally)
 

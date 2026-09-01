@@ -1,4 +1,3 @@
---extra-index-url https://download.pytorch.org/whl/cpu
 # ---------------------------------------------------------------------------
 # Forest Loss Detection & Dynamic Carbon Emission Estimation
 # Pinned environment. Target interpreter: CPython 3.11 (3.11.x).

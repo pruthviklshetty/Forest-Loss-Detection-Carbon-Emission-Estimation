@@ -1,0 +1,32 @@
+# Deployment-only dependency set for the live-inference backend (Render).
+#
+# This is a strict SUBSET of the root requirements.txt - only the packages the
+# serving path (backend/serve/ + the src modules it imports) actually loads.
+# The served model is the plain U-Net, so torchvision / segmentation-models-
+# pytorch / timm are NOT here (they are only pulled in by the attention model,
+# which the backend never builds), nor are scipy / pandas / scikit-learn /
+# shapely / pyproj / opencv / matplotlib (training / offline-analysis only).
+#
+# Do NOT use this file for local development or the training pipeline - use the
+# root requirements.txt for those. Linux / CPython 3.11 only (the torch line is
+# a platform-specific wheel URL).
+#
+# Pins match the root requirements.txt exactly, so serving behaviour is
+# identical - only torch is sourced differently: PyTorch's CPU package index has
+# aged 2.5.1 out of its listing, but the wheel file itself is still served, so
+# it is pinned by direct URL. Same torch version as local dev (2.5.1), CPU
+# build, ~180 MB instead of the ~2.5 GB CUDA wheel from PyPI.
+
+torch @ https://download.pytorch.org/whl/cpu/torch-2.5.1%2Bcpu-cp311-cp311-linux_x86_64.whl
+
+numpy==1.26.4
+rasterio==1.3.11
+Pillow==10.4.0
+PyYAML==6.0.2
+earthengine-api==0.1.408
+requests==2.32.3
+tqdm==4.66.5
+
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
