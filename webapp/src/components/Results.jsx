@@ -16,6 +16,7 @@ export default function Results({ job }) {
   const co2Primary = ac.co2_tonnes_exponential
   const co2Bin = ac.co2_tonnes_three_bin
   const areaBias = card?.area?.pooled_test_pred_over_gfc
+  const tw = card?.training_window
 
   return (
     <div className="results">
@@ -29,6 +30,13 @@ export default function Results({ job }) {
               : `Custom bbox [${(dom.bbox_wsen || []).map((x) => Number(x).toFixed(2)).join(', ')}]`
         }
       >
+        {tw?.label && (
+          <div className="trained-on">
+            Model trained on <b>{tw.label}</b>
+            {tw.gfc_lossyear && <> · Hansen GFC lossyear {tw.gfc_lossyear.join('–')}</>}
+          </div>
+        )}
+
         {/* headline: the two figures are the largest, highest-contrast elements */}
         <div className="headline">
           <div className="headline__stat">

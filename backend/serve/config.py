@@ -15,16 +15,46 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 REGION_CFG = REPO / "configs" / "region.yaml"
 
-# The Phase 8 carry-forward checkpoint (median best-validation-Dice pooled seed).
-# Its config, norm_stats path and val-tuned threshold are read from the file /
-# its eval JSON at load time - nothing about the model is hard-coded here.
-CHECKPOINT = REPO / "results" / "checkpoints" / "p8_pooled_unet_s44_best.pt"
-EVAL_JSON = REPO / "results" / "metrics" / "p8_pooled_unet_s44.json"
+# --- Served checkpoint (config value) -------------------------------------
+# `SERVE_CHECKPOINT_STEM` selects which trained model the app serves. The
+# model's config, norm_stats path and val-tuned threshold are still read from
+# the checkpoint / its eval JSON at load time - nothing about the model is
+# hard-coded here.
+#   p8_pooled_unet_s44   -> 2019->2021 (Phase 8), the paper's basis  [default]
+#   p10_pooled_unet_s<n>  -> 2021->2023 (Phase 10)
+CHECKPOINT_STEM = os.environ.get("SERVE_CHECKPOINT_STEM", "p8_pooled_unet_s44")
+
+# Training window shown on the results page, keyed by checkpoint-stem prefix.
+# (The stems do not carry their acquisition dates; this is the one lookup.)
+_TRAINING_WINDOWS = {
+    "p8_": {"period": "2019_2021", "t": ["2019-01-01", "2019-04-15"],
+            "t1": ["2021-01-01", "2021-04-15"], "gfc_lossyear": [19, 20]},
+    "p10_": {"period": "2021_2023", "t": ["2021-01-01", "2021-04-15"],
+             "t1": ["2023-01-01", "2023-04-15"], "gfc_lossyear": [21, 22]},
+}
+
+
+def _for_stem(stem: str) -> dict:
+    for pref, win in _TRAINING_WINDOWS.items():
+        if stem.startswith(pref):
+            return win
+    return {"period": "unknown", "t": None, "t1": None, "gfc_lossyear": None}
+
+
+TRAINING_WINDOW = _for_stem(CHECKPOINT_STEM)
+_PERIOD = TRAINING_WINDOW["period"]
+_SEED_RUNS_NAME = ("phase8_seed_runs.json" if _PERIOD == "2019_2021"
+                   else "phase10_seed_runs.json")
+_CARBON_DIR = (REPO / "results" / "carbon_validation" if _PERIOD == "2019_2021"
+               else REPO / "results" / "carbon_validation" / _PERIOD)
+
+CHECKPOINT = REPO / "results" / "checkpoints" / f"{CHECKPOINT_STEM}_best.pt"
+EVAL_JSON = REPO / "results" / "metrics" / f"{CHECKPOINT_STEM}.json"
 
 # Result JSON the model card is assembled from (no metric is copied into code).
-PHASE8_SEED_RUNS = REPO / "results" / "metrics" / "phase8_seed_runs.json"
-AREA_SUMMARY = REPO / "results" / "deforestation" / "p8_pooled_unet_s44_area_summary.json"
-CARBON_ESTIMATES = REPO / "results" / "carbon_validation" / "carbon_estimates.json"
+PHASE8_SEED_RUNS = REPO / "results" / "metrics" / _SEED_RUNS_NAME
+AREA_SUMMARY = REPO / "results" / "deforestation" / f"{CHECKPOINT_STEM}_area_summary.json"
+CARBON_ESTIMATES = _CARBON_DIR / "carbon_estimates.json"
 
 # Per-job scratch (masks served from here; cleaned on process restart).
 JOBS_DIR = pathlib.Path(os.environ.get("SERVE_JOBS_DIR", REPO / "backend" / "_jobs"))

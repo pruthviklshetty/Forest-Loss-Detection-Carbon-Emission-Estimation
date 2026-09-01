@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import json
 
-from .config import AREA_SUMMARY, CARBON_ESTIMATES, EVAL_JSON, PHASE8_SEED_RUNS
+from .config import (AREA_SUMMARY, CARBON_ESTIMATES, CHECKPOINT_STEM, EVAL_JSON,
+                     PHASE8_SEED_RUNS, TRAINING_WINDOW)
 
 
 def _load(path):
@@ -108,8 +109,21 @@ def build_model_card() -> dict:
                  "pixel-matched biomass.",
     }
 
+    tw = TRAINING_WINDOW
+    training_window = {
+        "period": tw.get("period"),
+        "t": tw.get("t"),
+        "t1": tw.get("t1"),
+        "gfc_lossyear": tw.get("gfc_lossyear"),
+        "label": (f"{tw['t'][0][:7]} – {tw['t'][1][:7]}  vs  "
+                  f"{tw['t1'][0][:7]} – {tw['t1'][1][:7]}"
+                  if tw.get("t") and tw.get("t1") else None),
+    }
+
     return {
         "checkpoint": str(EVAL_JSON.name).replace(".json", ""),
+        "checkpoint_stem": CHECKPOINT_STEM,
+        "training_window": training_window,
         "operating_threshold": (ev or {}).get("operating_threshold"),
         "in_domain": in_domain,
         "transfer_out_of_training_set": transfer,

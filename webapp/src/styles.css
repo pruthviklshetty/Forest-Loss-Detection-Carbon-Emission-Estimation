@@ -133,6 +133,10 @@ button.primary:disabled { opacity: 0.55; cursor: default; }
 
 /* results headline - the largest, highest-contrast elements on the page */
 .results .card__title { font-size: 15px; color: var(--muted); font-weight: 600; }
+.trained-on {
+  font-size: 13px; color: var(--muted); margin: 2px 0 10px;
+  padding: 6px 10px; background: #f1f4f2; border-radius: 6px;
+}
 .headline {
   display: flex; flex-wrap: wrap; gap: 14px 40px;
   margin: 6px 0 16px;

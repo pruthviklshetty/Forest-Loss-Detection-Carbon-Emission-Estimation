@@ -160,9 +160,12 @@ export default function App() {
       {!job && modelCard && <ModelCard card={modelCard} />}
 
       <footer className="foot muted small">
-        Served checkpoint: {modelCard?.checkpoint || '—'}. Metrics on this page are
-        read live from the project’s result JSON; a missing value shows as “—”, never
-        a placeholder.
+        Served checkpoint: {modelCard?.checkpoint || '—'}
+        {modelCard?.training_window?.label && (
+          <> · trained on {modelCard.training_window.label}</>
+        )}
+        . Metrics on this page are read live from the project’s result JSON; a
+        missing value shows as “—”, never a placeholder.
       </footer>
     </div>
   )
