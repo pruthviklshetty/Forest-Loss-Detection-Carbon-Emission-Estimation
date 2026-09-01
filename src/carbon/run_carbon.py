@@ -21,6 +21,7 @@ means, not pixel-matched biomass. The regression is fit once on 8 Western-Ghats
 anchors; the 3-bin NDVI cut points are each region's own forest terciles.
 
     python -m src.carbon.run_carbon --experiment p8_pooled_unet_s43
+    python -m src.carbon.run_carbon --experiment p10_pooled_unet_s43 --period 2021_2023
     python -m src.carbon.run_carbon --experiment baseline_unet --regions wayanad
 """
 
