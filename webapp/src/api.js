@@ -1,6 +1,12 @@
 // Thin fetch wrappers around the FastAPI backend.
 
-export const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8000').replace(/\/$/, '')
+// Backend base URL. Set VITE_API_URL at build time for a deployed frontend;
+// defaults to the local FastAPI dev server. (VITE_API_BASE kept as an alias.)
+export const API_BASE = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE ||
+  'http://127.0.0.1:8000'
+).replace(/\/$/, '')
 
 async function j(path, opts) {
   const res = await fetch(API_BASE + path, opts)

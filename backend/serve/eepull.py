@@ -1,10 +1,18 @@
 """Earth Engine access for the live app.
 
-Authentication is **service-account only**: the JSON key path comes from the
-``EE_SERVICE_ACCOUNT_KEY`` environment variable (fallback:
-``earth_engine.service_account_key`` in configs/region.yaml, which must point at
-a git-ignored file). ``earthengine authenticate`` / interactive auth is never
-used here.
+Authentication is **service-account only** (``earthengine authenticate`` /
+interactive auth is never used). The key is resolved, in order:
+
+  1. ``GEE_KEY_JSON``  - the full JSON key contents as a string. Written to a
+     private temp file in the OS temp dir (never inside the repo) at startup and
+     removed at process exit. For containers / Railway, which have no persistent
+     secret filesystem.
+  2. ``GEE_KEY_PATH`` / ``EE_SERVICE_ACCOUNT_KEY`` - path to the JSON key file
+     (local development; behaviour unchanged).
+  3. ``earth_engine.service_account_key`` in configs/region.yaml (a git-ignored
+     path).
+
+The key contents are never logged and never written anywhere under the repo.
 
 The Sentinel-2 composite is built with the *same* recipe as
 ``src/preprocessing/download_data.s2_composite`` (S2_SR_HARMONIZED + Cloud
@@ -17,13 +25,16 @@ cloud / no-data cover of each date.
 
 from __future__ import annotations
 
+import atexit
 import json
+import os
 import pathlib
+import tempfile
 
 import ee
 import yaml
 
-from .config import EE_KEY_PATH, EE_PROJECT, REGION_CFG
+from .config import EE_KEY_JSON, EE_KEY_PATH, EE_PROJECT, REGION_CFG, REPO
 
 # reuse the exact training composite recipe
 from src.preprocessing.download_data import (  # noqa: E402
@@ -32,11 +43,52 @@ from src.preprocessing.download_data import (  # noqa: E402
 from src.preprocessing.eeutil import download_image_tiled  # noqa: E402
 
 _INITED = False
+_TMP_KEY_FILES: list[str] = []
+
+_NO_KEY_MSG = (
+    "No Earth Engine service-account key. Set one of, in priority order:\n"
+    "  GEE_KEY_JSON            - the JSON key contents as a string (containers / Railway)\n"
+    "  GEE_KEY_PATH            - path to the JSON key file (local development)\n"
+    "  EE_SERVICE_ACCOUNT_KEY  - alias for GEE_KEY_PATH\n"
+    "or earth_engine.service_account_key in configs/region.yaml. "
+    "See backend/README.md."
+)
 
 
 def _cfg() -> dict:
     with open(REGION_CFG, "r", encoding="utf-8") as fh:
         return yaml.safe_load(fh)
+
+
+@atexit.register
+def _cleanup_tmp_keys() -> None:
+    for p in _TMP_KEY_FILES:
+        try:
+            os.unlink(p)
+        except OSError:
+            pass
+
+
+def _key_json_to_tempfile(info: dict) -> str:
+    """Write a service-account key dict to a 0600 temp file in the OS temp dir
+    (never under the repo). Removed at process exit."""
+    fd, path = tempfile.mkstemp(prefix="ee-sa-key-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(info, fh)
+        os.chmod(path, 0o600)
+    except Exception:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        raise
+    resolved = pathlib.Path(path).resolve()
+    if str(resolved).startswith(str(pathlib.Path(REPO).resolve())):
+        os.unlink(path)
+        raise RuntimeError("refusing to write the Earth Engine key inside the repo directory")
+    _TMP_KEY_FILES.append(str(resolved))
+    return str(resolved)
 
 
 def init_ee() -> str:
@@ -46,23 +98,32 @@ def init_ee() -> str:
         return getattr(ee.data, "_cloud_api_user_project", None) or "(initialised)"
 
     cfg = _cfg()
-    key_path = EE_KEY_PATH or (cfg.get("earth_engine") or {}).get("service_account_key")
-    if not key_path:
-        raise RuntimeError(
-            "No Earth Engine service-account key. Set EE_SERVICE_ACCOUNT_KEY to "
-            "the path of a JSON key file (see backend/README.md).")
-    key_path = str(pathlib.Path(key_path).expanduser())
-    if not pathlib.Path(key_path).is_file():
-        raise RuntimeError(f"EE service-account key not found at {key_path!r}.")
 
-    with open(key_path, "r", encoding="utf-8") as fh:
-        info = json.load(fh)
-    email = info.get("client_email")
-    if not email:
-        raise RuntimeError(f"{key_path!r} is not a service-account key "
-                           "(no client_email).")
+    if EE_KEY_JSON:
+        try:
+            info = json.loads(EE_KEY_JSON)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("GEE_KEY_JSON is set but is not valid JSON.") from exc
+        if not isinstance(info, dict) or not info.get("client_email"):
+            raise RuntimeError("GEE_KEY_JSON is not a service-account key "
+                               "(no client_email).")
+        key_file = _key_json_to_tempfile(info)
+    else:
+        key_path = EE_KEY_PATH or (cfg.get("earth_engine") or {}).get("service_account_key")
+        if not key_path:
+            raise RuntimeError(_NO_KEY_MSG)
+        key_path = str(pathlib.Path(key_path).expanduser())
+        if not pathlib.Path(key_path).is_file():
+            raise RuntimeError(f"EE service-account key not found at {key_path!r}.")
+        with open(key_path, "r", encoding="utf-8") as fh:
+            info = json.load(fh)
+        if not info.get("client_email"):
+            raise RuntimeError(f"{key_path!r} is not a service-account key "
+                               "(no client_email).")
+        key_file = key_path
+
     project = EE_PROJECT or info.get("project_id") or cfg["earth_engine"]["project"]
-    creds = ee.ServiceAccountCredentials(email, key_path)
+    creds = ee.ServiceAccountCredentials(info["client_email"], key_file)
     ee.Initialize(creds, project=project)
     _INITED = True
     return project

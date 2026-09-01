@@ -100,7 +100,7 @@ export default function App() {
       <div className="wrap">
         <Notice kind="danger" title="Cannot reach the backend">
           {loadError}. Start the FastAPI service (see <code>backend/README.md</code>) and
-          set <code>VITE_API_BASE</code> if it is not on <code>localhost:8000</code>.
+          set <code>VITE_API_URL</code> if it is not on <code>127.0.0.1:8000</code>.
         </Notice>
       </div>
     )

@@ -36,13 +36,16 @@ from .pipeline import run_pipeline
 
 app = FastAPI(title="Forest-loss live inference", version="0.9.0")
 
-_origins = os.environ.get(
-    "SERVE_CORS_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173",
-).split(",")
+# CORS: localhost:5173 is always allowed for local dev; deployed frontend
+# origins come from ALLOWED_ORIGINS (comma-separated). No wildcard.
+# SERVE_CORS_ORIGINS is still read as a back-compat alias.
+_origins = {"http://localhost:5173", "http://127.0.0.1:5173"}
+_env_origins = (os.environ.get("ALLOWED_ORIGINS")
+                or os.environ.get("SERVE_CORS_ORIGINS") or "")
+_origins.update(o.strip() for o in _env_origins.split(",") if o.strip())
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _origins if o.strip()],
+    allow_origins=sorted(_origins),
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )

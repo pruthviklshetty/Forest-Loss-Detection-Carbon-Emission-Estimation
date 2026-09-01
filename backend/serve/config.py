@@ -69,11 +69,16 @@ CARBON_ESTIMATES = _CARBON_DIR / "carbon_estimates.json"
 JOBS_DIR = pathlib.Path(os.environ.get("SERVE_JOBS_DIR", REPO / "backend" / "_jobs"))
 
 # --- Earth Engine (service account only; NEVER earthengine authenticate) ---
-# Path to the service-account JSON key. Must point at a git-ignored file.
-# `EE_SERVICE_ACCOUNT_KEY` is the documented name; `GEE_KEY_PATH` is also
-# accepted for convenience.
+# Resolution order (serve.eepull.init_ee):
+#   1. GEE_KEY_JSON  - the full JSON key *contents* as a string (containers /
+#      Railway, which have no persistent secret filesystem). Written to a
+#      private temp file OUTSIDE the repo at startup.
+#   2. GEE_KEY_PATH / EE_SERVICE_ACCOUNT_KEY - path to the JSON key file
+#      (local dev; unchanged).
+#   3. earth_engine.service_account_key in configs/region.yaml (git-ignored path).
+EE_KEY_JSON = os.environ.get("GEE_KEY_JSON")
 EE_KEY_PATH = (os.environ.get("EE_SERVICE_ACCOUNT_KEY")
-               or os.environ.get("GEE_KEY_PATH"))  # required at runtime
+               or os.environ.get("GEE_KEY_PATH"))
 # Optional explicit project override; otherwise the key's project_id / the
 # region.yaml project is used.
 EE_PROJECT = os.environ.get("EE_PROJECT")

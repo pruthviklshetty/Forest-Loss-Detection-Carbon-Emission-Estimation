@@ -50,21 +50,22 @@ bands B3/B4/B8/B11 at two dates, which an RGB image does not contain.
 ## Run
 
 ```bash
-cp .env.example .env.local          # set VITE_API_BASE if backend isn't on :8000
+cp .env.example .env.local          # set VITE_API_URL if backend isn't on 127.0.0.1:8000
 npm install
 npm run dev                         # http://localhost:5173
 ```
 
 The backend must be running first (`cd ../backend && uvicorn serve.main:app --port 8000`)
-with `EE_SERVICE_ACCOUNT_KEY` set — see [`../backend/README.md`](../backend/README.md).
+with `GEE_KEY_PATH` set — see [`../backend/README.md`](../backend/README.md).
+With no env vars, the frontend talks to `http://127.0.0.1:8000`.
 
 ## Build / deploy
 
 ```bash
-npm run build        # -> dist/
+VITE_API_URL=https://<backend-host> npm run build   # -> dist/
 ```
 
 `base: './'` keeps asset paths relative, so `dist/` can be served from any
-static host (Render static site, Netlify, GitHub Pages). Set `VITE_API_BASE` at
-build time to the deployed backend URL, and add that frontend origin to the
-backend's `SERVE_CORS_ORIGINS`.
+static host (Railway static service, Netlify, GitHub Pages, …). `VITE_API_URL`
+is baked in at build time; add the frontend's origin to the backend's
+`ALLOWED_ORIGINS`.

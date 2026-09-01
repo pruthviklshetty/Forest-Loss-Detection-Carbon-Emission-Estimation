@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// The API base is read at runtime from VITE_API_BASE (see .env.example);
+// The API base is read from VITE_API_URL at build time (see .env.example);
 // default is the local FastAPI dev server. `base: './'` keeps built asset
 // paths relative so dist/ can be served from any sub-path or static host.
 export default defineConfig({

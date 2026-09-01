@@ -81,19 +81,26 @@ JSON key**:
 4. Put the key file somewhere **outside version control**. `.gitignore` already
    blocks `backend/*.json`, `service_account*.json`, `*-ee-key.json`,
    `secrets/`; keeping it in `secrets/` is recommended.
-5. Point the service at it:
+5. Point the service at it. Resolution order (`serve/eepull.py:init_ee`):
 
-   ```bash
-   export EE_SERVICE_ACCOUNT_KEY=/abs/path/to/secrets/ee-service-account.json
-   # optional: export EE_PROJECT=your-ee-project        # else key project_id / region.yaml
-   ```
+   1. **`GEE_KEY_JSON`** — the full JSON key *contents* as a string. Written to a
+      0600 temp file in the OS temp dir (never under the repo) at startup and
+      deleted at process exit. Use this on Railway / any container with no
+      persistent secret filesystem.
+   2. **`GEE_KEY_PATH`** / **`EE_SERVICE_ACCOUNT_KEY`** — path to the JSON key
+      file (local development):
 
-   As a fallback the path can be set in `configs/region.yaml` under
-   `earth_engine.service_account_key`, but it must still point at a git-ignored
-   file.
+      ```bash
+      export GEE_KEY_PATH=/abs/path/to/secrets/ee-service-account.json
+      # optional: export EE_PROJECT=your-ee-project   # else key project_id / region.yaml
+      ```
+   3. `earth_engine.service_account_key` in `configs/region.yaml` (git-ignored path).
 
-The key is read once at first job (`serve/eepull.py:init_ee`), used to build
-`ee.ServiceAccountCredentials`, and never logged.
+   `.gitignore` blocks `backend/*.json`, `service_account*.json`, `*-ee-key.json`,
+   `secrets/`; keeping a local key in `secrets/` is recommended.
+
+The key is read once at first job, used to build `ee.ServiceAccountCredentials`,
+and **never logged and never written anywhere under the repo**.
 
 ## Run locally
 
@@ -102,19 +109,22 @@ python -m venv .venv && . .venv/Scripts/activate      # or .venv/bin/activate
 pip install -r requirements.txt          # project deps
 pip install -r backend/requirements.txt  # fastapi, uvicorn, pydantic
 
-export EE_SERVICE_ACCOUNT_KEY=/abs/path/to/secrets/ee-service-account.json
+export GEE_KEY_PATH=/abs/path/to/secrets/ee-service-account.json
 cd backend
 uvicorn serve.main:app --reload --port 8000
 ```
 
-`GET http://localhost:8000/health` should return `{"ok": true, "checkpoint_present": true}`.
+`GET http://127.0.0.1:8000/health` should return `{"ok": true, "checkpoint_present": true}`.
 
 ## Configuration (environment variables)
 
 | var | default | meaning |
 |---|---|---|
-| `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key (`GEE_KEY_PATH` also accepted) |
+| `GEE_KEY_JSON` | – | service-account key JSON *contents* as a string (containers / Railway); takes priority over the path vars |
+| `GEE_KEY_PATH` / `EE_SERVICE_ACCOUNT_KEY` | – (one required) | path to the service-account JSON key file (local dev) |
 | `EE_PROJECT` | key `project_id` / region.yaml | Earth Engine cloud project |
+| `PORT` | `8000` (via start command) | Railway sets this; bind `--host 0.0.0.0 --port $PORT` |
+| `ALLOWED_ORIGINS` | – | comma-separated extra CORS origins (deployed frontend); `http://localhost:5173` is always allowed. `SERVE_CORS_ORIGINS` is a back-compat alias |
 | `SERVE_CHECKPOINT_STEM` | `p10_pooled_unet_s43` | which trained model to serve: `p10_pooled_unet_s43` = 2021→2023 (more recent data, default), `p8_pooled_unet_s44` = 2019→2021 (paper basis). The results page, model card and `/domain` state the served model's training window; leave-one-region-out was only measured for 2019→2021 and is carried with that label. |
 | `SERVE_MAX_AREA_KM2` | `900` | raw-bbox path: reject areas larger than this |
 | `SERVE_MAX_RADIUS_KM` | `20` | point path: max radius |
@@ -126,7 +136,6 @@ uvicorn serve.main:app --reload --port 8000
 | `SERVE_GEOCODE_UA` | app string | User-Agent sent to Nominatim (set a contact) |
 | `SERVE_GEOCODE_MIN_INTERVAL_S` | `1.1` | min seconds between Nominatim calls |
 | `SERVE_JOBS_DIR` | `backend/_jobs` | per-job scratch + served masks |
-| `SERVE_CORS_ORIGINS` | `http://localhost:5173,...` | allowed frontend origins |
 
 ## API
 
@@ -156,7 +165,7 @@ each job's raster stays small.
 
 - **Build:** `pip install -r requirements.txt -r backend/requirements.txt`
 - **Start:** `uvicorn serve.main:app --host 0.0.0.0 --port $PORT` (working dir `backend/`)
-- **Env:** set `EE_SERVICE_ACCOUNT_KEY` via a Render *secret file* and point the
-  var at its mount path; set `SERVE_CORS_ORIGINS` to the deployed frontend URL.
+- **Env:** `GEE_KEY_JSON` = the key JSON contents; `ALLOWED_ORIGINS` = the
+  deployed frontend URL.
 - Install `torch` from the CPU wheel index to keep the image small:
   `pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu`.
