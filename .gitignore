@@ -30,6 +30,9 @@ data/processed/*
 *.pt
 *.pth
 *.ckpt
+# ...except the served checkpoint - the deployed backend (Railway builds from
+# GitHub) needs it in the repo. All other .pt stay ignored.
+!results/checkpoints/p10_pooled_unet_s43_best.pt
 
 # ...but keep the small text provenance artifacts (ground rule 2)
 !data/raw/manifest.json
