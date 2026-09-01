@@ -40,11 +40,11 @@ import pathlib
 import numpy as np
 import rasterio
 
+from ..paths import masks_dir as _masks_dir
 from ..regions import load_regions
 from .eeutil import load_cfg
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
-_MASKS = _REPO / "data" / "masks"
 
 
 def _read_gfc(path: pathlib.Path) -> dict[str, np.ndarray]:
@@ -75,7 +75,7 @@ def build_region(region: dict, cfg: dict) -> dict:
     canopy_thr = float(cfg["ground_truth"]["canopy_threshold_pct"])
     loss_codes = list(cfg["ground_truth"]["loss_year_codes"])
     gsd = int(region["gsd_m"])
-    mdir = _MASKS / rid
+    mdir = _masks_dir(cfg, rid)
     gfc_path = mdir / "hansen_gfc_raw.tif"
     if not gfc_path.exists():
         raise SystemExit(f"missing {gfc_path}; run src.preprocessing.download_data first")
@@ -135,8 +135,12 @@ def build_region(region: dict, cfg: dict) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--regions", default=None)
+    ap.add_argument("--config", default="configs/region.yaml",
+                    help="config file (use configs/period_2021_2023.yaml for Phase 10)")
     args = ap.parse_args()
-    cfg = load_cfg()
+    cfg = load_cfg(args.config)
+    if cfg.get("period_id"):
+        print(f"period: {cfg['period_id']}  |  loss_year_codes {cfg['ground_truth']['loss_year_codes']}")
     regions = load_regions(cfg)
     if args.regions:
         want = {s.strip() for s in args.regions.split(",")}

@@ -42,10 +42,15 @@ import random
 import numpy as np
 import rasterio
 
+from ..paths import masks_dir as _masks_dir
+from ..paths import proc_dir as _proc_dir
+from ..paths import raw_dir as _raw_dir
 from ..regions import load_regions
 from .eeutil import load_cfg
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
+# defaults (2019->2021 layout); main() rebinds these from the loaded config so a
+# `period_id` routes everything under data/*/<period_id>/
 _RAW = _REPO / "data" / "raw"
 _MASKS = _REPO / "data" / "masks"
 _PROC = _REPO / "data" / "processed"
@@ -225,10 +230,16 @@ def _loro_folds(rows):
 
 
 def main() -> None:
+    global _RAW, _MASKS, _PROC
     ap = argparse.ArgumentParser()
     ap.add_argument("--regions", default=None)
+    ap.add_argument("--config", default="configs/region.yaml",
+                    help="config file (use configs/period_2021_2023.yaml for Phase 10)")
     args = ap.parse_args()
-    cfg = load_cfg()
+    cfg = load_cfg(args.config)
+    _RAW, _MASKS, _PROC = _raw_dir(cfg), _masks_dir(cfg), _proc_dir(cfg)
+    if cfg.get("period_id"):
+        print(f"period: {cfg['period_id']}  ->  {_PROC.relative_to(_REPO).as_posix()}/")
     regions = load_regions(cfg)
     if args.regions:
         want = {s.strip() for s in args.regions.split(",")}

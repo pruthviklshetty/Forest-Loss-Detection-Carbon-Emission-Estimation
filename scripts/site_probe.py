@@ -15,11 +15,11 @@ import argparse
 import ee
 
 from src.common import load_yaml
+from src.preprocessing.eeutil import init_ee
 from src.regions import load_regions
 
 GFC_DEFAULT = "UMD/hansen/global_forest_change_2024_v1_12"
 S2 = "COPERNICUS/S2_SR_HARMONIZED"
-WINDOWS = [("T", "2019-01-01", "2019-04-15"), ("T+1", "2021-01-01", "2021-04-15")]
 
 # wider candidate set used during selection (kept for the record)
 CANDIDATES = {
@@ -36,7 +36,8 @@ CANDIDATES = {
 }
 
 
-def probe(name: str, box: list[float], gfc: ee.Image, canopy: int, codes: list[int]) -> None:
+def probe(name: str, box: list[float], gfc: ee.Image, canopy: int, codes: list[int],
+          windows: list[tuple[str, str, str]]) -> None:
     aoi = ee.Geometry.Rectangle(box, "EPSG:4326", geodesic=False)
     area_km2 = round(aoi.area(1).getInfo() / 1e6, 1)
     forest = gfc.select("treecover2000").gte(canopy).And(gfc.select("datamask").eq(1))
@@ -52,7 +53,7 @@ def probe(name: str, box: list[float], gfc: ee.Image, canopy: int, codes: list[i
         ee.Reducer.sum(), aoi, 30, maxPixels=1e10).get("lossyear")).divide(1e4).getInfo()
     prev = 100 * l_ha / f_ha if f_ha else 0.0
     s2 = []
-    for lbl, a, b in WINDOWS:
+    for lbl, a, b in windows:
         col = ee.ImageCollection(S2).filterBounds(aoi).filterDate(a, b)
         n = col.size().getInfo()
         cl = sorted(col.aggregate_array("CLOUDY_PIXEL_PERCENTAGE").getInfo())
@@ -65,21 +66,27 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--candidates", action="store_true",
                     help="probe the wider candidate set instead of the committed regions")
+    ap.add_argument("--config", default="configs/region.yaml",
+                    help="config file (use configs/period_2021_2023.yaml for Phase 10)")
     args = ap.parse_args()
 
-    cfg = load_yaml("configs/region.yaml")
-    ee.Initialize(project=cfg["earth_engine"]["project"])
+    cfg = load_yaml(args.config)
+    init_ee(cfg)
     gfc = ee.Image(cfg["ground_truth"]["gee_asset"])
     canopy = int(cfg["ground_truth"]["canopy_threshold_pct"])
     codes = list(cfg["ground_truth"]["loss_year_codes"])
-    print(f"GFC {cfg['ground_truth']['gee_asset']} | canopy>={canopy}% | lossyear {codes}\n")
+    tw = cfg["time_windows"]
+    windows = [("T", tw["T"]["start"], tw["T"]["end"]),
+               ("T+1", tw["T_plus_1"]["start"], tw["T_plus_1"]["end"])]
+    print(f"GFC {cfg['ground_truth']['gee_asset']} | canopy>={canopy}% | "
+          f"lossyear {codes} | windows {windows[0][1:]} vs {windows[1][1:]}\n")
 
     if args.candidates:
         for name, box in CANDIDATES.items():
-            probe(name, box, gfc, canopy, codes)
+            probe(name, box, gfc, canopy, codes, windows)
     else:
         for r in load_regions(cfg):
-            probe(r["id"], r["bbox_wsen"], gfc, canopy, codes)
+            probe(r["id"], r["bbox_wsen"], gfc, canopy, codes, windows)
 
 
 if __name__ == "__main__":

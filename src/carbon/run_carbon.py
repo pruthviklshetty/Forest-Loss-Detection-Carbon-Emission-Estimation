@@ -38,16 +38,21 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from ..common import REPO, RESULTS  # noqa: E402
+from ..paths import masks_dir as _masks_dir  # noqa: E402
+from ..paths import proc_dir as _proc_dir  # noqa: E402
+from ..paths import raw_dir as _raw_dir  # noqa: E402
 from ..regions import load_regions  # noqa: E402
 from .ndvi import THREE_BIN_VALUES_tC_ha, compute_ndvi, three_bin_carbon_density  # noqa: E402
 from .regression_model import fit, build_calibration, predict  # noqa: E402
 
+# rebound in main() when --period is given
 RAW = REPO / "data" / "raw"
 MASKS = REPO / "data" / "masks"
 PROC = REPO / "data" / "processed"
 DEFOR = RESULTS / "deforestation"
 OUT = RESULTS / "carbon_validation"
 FIG = RESULTS / "figures"
+_FIG_SUFFIX = ""
 
 HA_PER_PX = 0.01
 CO2_PER_C = 44.0 / 12.0
@@ -159,11 +164,11 @@ def _co2_figure(estimates, exp):
         ax.bar_label(b, fmt="%.0f", fontsize=7)
     ax.set_xticks(x); ax.set_xticklabels(groups, rotation=10)
     ax.set_ylabel("tonnes CO2 (committed, aboveground)")
-    ax.set_title(f"CO2 from 2019-2020 predicted loss on held-out test blocks ({exp})")
+    ax.set_title(f"CO2 from predicted loss on held-out test blocks ({exp})")
     ax.legend()
     fig.tight_layout()
     FIG.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIG / "phase6_co2_estimates.png", dpi=110)
+    fig.savefig(FIG / f"phase6_co2_estimates{_FIG_SUFFIX}.png", dpi=110)
     plt.close(fig)
 
 
@@ -183,17 +188,28 @@ def _calibration_figure(coefs):
     ax.legend()
     fig.tight_layout()
     FIG.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIG / "phase6_carbon_calibration.png", dpi=110)
+    fig.savefig(FIG / f"phase6_carbon_calibration{_FIG_SUFFIX}.png", dpi=110)
     plt.close(fig)
 
 
 def main() -> None:
+    global RAW, MASKS, PROC, OUT, _FIG_SUFFIX
     ap = argparse.ArgumentParser()
     ap.add_argument("--experiment", default="baseline_unet")
     ap.add_argument("--regions", default=None,
                     help="comma-separated region ids (default: all in configs/region.yaml)")
+    ap.add_argument("--period", default=None,
+                    help="read data/*/<period>/, write results/carbon_validation/<period>/ "
+                         "(e.g. 2021_2023) so nothing overwrites the 2019-2021 carbon output")
     args = ap.parse_args()
     exp = args.experiment
+    if args.period:
+        RAW, MASKS, PROC = (_raw_dir(period=args.period), _masks_dir(period=args.period),
+                            _proc_dir(period=args.period))
+        OUT = RESULTS / "carbon_validation" / args.period
+        _FIG_SUFFIX = f"_{args.period}"
+        print(f"period: {args.period}  ->  {OUT.relative_to(REPO).as_posix()}/")
+    OUT.mkdir(parents=True, exist_ok=True)
 
     regions = load_regions()
     if args.regions:

@@ -1,0 +1,127 @@
+# ===========================================================================
+# Phase 10 - SECOND temporal period: 2021 -> 2023.
+#
+# Identical to configs/region.yaml (same four Western Ghats regions and bboxes,
+# same bands, same Cloud Score+ threshold, same canopy >= 30% forest mask, same
+# 256 px patches and stride-128 train-overlap rule) EXCEPT the acquisition
+# window and the Hansen `lossyear` code set. `period_id` routes every data path
+# under data/<kind>/2021_2023/ so the committed 2019->2021 artifacts are never
+# touched (src/paths.py).
+#
+# Do NOT edit configs/region.yaml for this - that file remains the validated
+# 2019->2021 record.
+# ===========================================================================
+
+period_id: "2021_2023"
+
+earth_engine:
+  project: "forest-loss-ee-test"
+  service_account_key: null
+
+target_gsd_m: 10
+
+# Same four blocks and bboxes as configs/region.yaml. `gfc_loss_ha_2019_20` is
+# retained for reference; the 2021-22 loss hectares for this period are reported
+# in docs/phase10_notes.md and data/masks/2021_2023/<id>/loss_label_summary.json.
+regions:
+  - id: "wayanad"
+    name: "Wayanad Plateau, Western Ghats, Kerala, India"
+    country: "India"
+    bbox: { wsen: [76.00, 11.55, 76.28, 11.80] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 237.0
+    admin_context: >
+      Wayanad district, Kerala. Semi-evergreen and moist-deciduous forest,
+      plantation and smallholder agriculture. Fragmented smallholder loss.
+  - id: "kodagu"
+    name: "Kodagu (Madikeri), Western Ghats, Karnataka, India"
+    country: "India"
+    bbox: { wsen: [75.60, 12.30, 75.88, 12.55] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 235.0
+    admin_context: >
+      Kodagu district around Madikeri. Wet evergreen / semi-evergreen forest
+      interleaved with coffee estates.
+  - id: "nilgiris"
+    name: "Nilgiris (Ooty), Western Ghats, Tamil Nadu, India"
+    country: "India"
+    bbox: { wsen: [76.60, 11.35, 76.88, 11.60] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 181.9
+    admin_context: >
+      Nilgiris plateau around Udhagamandalam (Ooty). Shola-grassland mosaic and
+      montane wet forest with tea and eucalyptus.
+  - id: "anamalai"
+    name: "Anamalai / Valparai, Western Ghats, Tamil Nadu, India"
+    country: "India"
+    bbox: { wsen: [76.85, 10.25, 77.13, 10.50] }
+    utm_epsg: 32643
+    gfc_loss_ha_2019_20: 138.9
+    admin_context: >
+      Valparai plateau and the Anamalai foothills. Tropical wet evergreen forest
+      fragmented by tea estates inside a tiger-reserve landscape.
+
+domain_extent_wsen: [74.8, 8.2, 77.9, 16.5]
+
+# ---------------------------------------------------------------------------
+# Bi-temporal windows - shifted two years from the 2019->2021 period, same
+# Jan-mid-Apr dry-season window for phenological comparability.
+# ---------------------------------------------------------------------------
+time_windows:
+  T:
+    label: "2021"
+    start: "2021-01-01"
+    end:   "2021-04-15"
+    note: "Post-NE-monsoon dry window; least cloud over the Ghats."
+  T_plus_1:
+    label: "2023"
+    start: "2023-01-01"
+    end:   "2023-04-15"
+    note: "Same seasonal window two years later for phenological comparability."
+
+bands:
+  selected: ["B3", "B4", "B8", "B11"]
+  names:    ["green", "red", "nir", "swir1"]
+  native_gsd_m: {B3: 10, B4: 10, B8: 10, B11: 20}
+  stack_layout: >
+    Channel order in the 8-band tensor:
+    [T_green, T_red, T_nir, T_swir1, T1_green, T1_red, T1_nir, T1_swir1].
+
+# ---------------------------------------------------------------------------
+# Ground truth: Hansen Global Forest Change v1.12 (same asset as 2019->2021).
+#
+# loss_year_codes {21, 22}: this mirrors the {19, 20} choice for the original
+# window exactly. The T composite (Jan-Apr 2021) represents the canopy state
+# entering 2021 and the T+1 composite (Jan-Apr 2023) the state entering 2023,
+# so stand-replacement loss dated to calendar 2021 or 2022 is what occurred
+# between the two acquisitions. lossyear = 23 is EXCLUDED: the T+1 imagery is
+# captured in early 2023, so most of calendar-2023 loss (May-Dec) happens after
+# T+1 and is not observable in it - the same reason {19, 20} excluded lossyear
+# = 21 for the original window. GFC v1.12 labels loss through 2023; 2024+ has
+# no ground truth and must not be used for training.
+# ---------------------------------------------------------------------------
+ground_truth:
+  source: "Hansen Global Forest Change"
+  gee_asset: "UMD/hansen/global_forest_change_2024_v1_12"
+  gee_asset_note: >
+    v1.12 labels stand-replacement loss for calendar years 2001-2023
+    (lossyear 1..23). This period uses 21 & 22; 23 is excluded (see above).
+  canopy_threshold_pct: 30
+  loss_year_codes: [21, 22]
+  positive_class: "new forest loss between T (2021) and T+1 (2023)"
+
+patching:
+  patch_size_px: 256
+  stride_px: 256
+  split_fractions: {train: 0.70, val: 0.15, test: 0.15}
+  split_unit: "patch"
+  split_seed: 42
+  split_block_patches: 2
+  train_overlap_stride_px: 128
+  split_note: >
+    Spatially blocked split, identical scheme to the 2019->2021 dataset.
+    Per-split patch counts and positive rates in
+    data/processed/2021_2023/split.json.
+
+compute:
+  local_gpu: "NVIDIA GeForce RTX 3050 Laptop 6 GB"

@@ -12,6 +12,7 @@ same global UTM pixel grid, so the tiles are mutually pixel-aligned and
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import tempfile
 import time
@@ -35,10 +36,25 @@ def load_cfg(path: str | pathlib.Path = "configs/region.yaml") -> dict:
 
 
 def init_ee(cfg: dict | None = None) -> str:
-    """ee.Initialize with the project from config; returns the project id."""
+    """Initialise Earth Engine and return the project id.
+
+    Prefers a **service-account** key from ``EE_SERVICE_ACCOUNT_KEY`` /
+    ``GEE_KEY_PATH`` (or ``earth_engine.service_account_key`` in the config);
+    falls back to the interactive credential store only when no key is set.
+    """
     cfg = cfg or load_cfg()
-    project = cfg["earth_engine"]["project"]
-    ee.Initialize(project=project)
+    project = os.environ.get("EE_PROJECT") or cfg["earth_engine"]["project"]
+    key = (os.environ.get("EE_SERVICE_ACCOUNT_KEY")
+           or os.environ.get("GEE_KEY_PATH")
+           or (cfg.get("earth_engine") or {}).get("service_account_key"))
+    if key and pathlib.Path(str(key)).is_file():
+        with open(key, "r", encoding="utf-8") as fh:
+            info = json.load(fh)
+        creds = ee.ServiceAccountCredentials(info["client_email"], str(key))
+        ee.Initialize(creds, project=project)
+        print(f"  Earth Engine: service account {info['client_email']}")
+    else:
+        ee.Initialize(project=project)
     return project
 
 

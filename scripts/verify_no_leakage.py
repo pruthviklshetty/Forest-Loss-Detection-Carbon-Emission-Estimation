@@ -18,14 +18,16 @@ index). Exit 0 if clean, 1 if any leak is found.
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import pathlib
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
-INDEX = REPO / "data" / "processed" / "index.csv"
-LORO = REPO / "data" / "processed" / "loro.json"
+_PROC = REPO / "data" / "processed"
+INDEX = _PROC / "index.csv"
+LORO = _PROC / "loro.json"
 
 
 def _extent(row: dict):
@@ -119,6 +121,16 @@ def check_loro(rows: list[dict]) -> list[str]:
 
 
 def main() -> int:
+    global INDEX, LORO
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--period", default=None,
+                    help="check data/processed/<period>/ instead of data/processed/ "
+                         "(e.g. 2021_2023 for Phase 10)")
+    args = ap.parse_args()
+    proc = _PROC / args.period if args.period else _PROC
+    INDEX, LORO = proc / "index.csv", proc / "loro.json"
+    print(f"checking {proc.relative_to(REPO).as_posix()}/")
+
     if not INDEX.exists():
         print(f"ERROR: {INDEX} not found", file=sys.stderr)
         return 2

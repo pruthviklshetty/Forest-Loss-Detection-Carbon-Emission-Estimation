@@ -37,13 +37,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from ..common import REPO, RESULTS  # noqa: E402
+from ..paths import masks_dir as _masks_dir  # noqa: E402
+from ..paths import proc_dir as _proc_dir  # noqa: E402
+from ..paths import raw_dir as _raw_dir  # noqa: E402
 from ..regions import load_regions  # noqa: E402
 
+# rebound in main() when --period is given
 RAW = REPO / "data" / "raw"
 MASKS = REPO / "data" / "masks"
 PROC = REPO / "data" / "processed"
 OUT = RESULTS / "deforestation"
 FIG = RESULTS / "figures"
+_FIG_SUFFIX = ""     # e.g. "_2021_2023" so period figures do not overwrite
 GSD = 10
 HA_PER_PX = GSD * GSD / 1e4          # 0.01 ha
 _DILATE_PX = 3                       # one 30 m Hansen GFC cell at the 10 m GSD
@@ -181,7 +186,7 @@ def _map_figure(per_region, exp, thr):
             a.set_xticks([]); a.set_yticks([])
     fig.tight_layout()
     FIG.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIG / "phase5_deforestation_map.png", dpi=110)
+    fig.savefig(FIG / f"phase5_deforestation_map{_FIG_SUFFIX}.png", dpi=110)
     plt.close(fig)
 
 
@@ -204,17 +209,25 @@ def _hectares_figure(summary, exp):
     axb.set_title("Forest area lost on held-out test blocks: predicted vs Hansen GFC")
     axb.legend()
     fig.tight_layout()
-    fig.savefig(FIG / "phase5_hectares.png", dpi=110)
+    fig.savefig(FIG / f"phase5_hectares{_FIG_SUFFIX}.png", dpi=110)
     plt.close(fig)
 
 
 def main() -> None:
+    global RAW, MASKS, PROC, _FIG_SUFFIX
     ap = argparse.ArgumentParser()
     ap.add_argument("--experiment", default="baseline_unet")
     ap.add_argument("--regions", default=None,
                     help="comma-separated region ids (default: all in configs/region.yaml)")
+    ap.add_argument("--period", default=None,
+                    help="read data/*/<period>/ and suffix figures (e.g. 2021_2023)")
     args = ap.parse_args()
     exp = args.experiment
+    if args.period:
+        RAW, MASKS, PROC = (_raw_dir(period=args.period), _masks_dir(period=args.period),
+                            _proc_dir(period=args.period))
+        _FIG_SUFFIX = f"_{args.period}"
+        print(f"period: {args.period}")
 
     regions = load_regions()
     if args.regions:

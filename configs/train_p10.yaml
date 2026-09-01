@@ -1,0 +1,42 @@
+# Phase 10 - plain U-Net on the POOLED 2021->2023 multi-region split.
+# Byte-identical to configs/train_pooled.yaml (Phase 8) except `experiment` and
+# `data.proc_dir`, so the 2019->2021 vs 2021->2023 comparison is fair.
+# LORO folds reuse THIS config with `--scheme loro --loro-region <id>`.
+
+experiment: "p10_pooled_unet"
+period_id: "2021_2023"
+
+model:
+  name: "unet"
+  in_channels: 8
+  classes: 1
+  base_channels: 32
+  depth: 4
+
+data:
+  proc_dir: "data/processed/2021_2023"
+  min_valid_frac: 0.10
+  batch_size: 8
+  num_workers: 4
+  augment: true
+  scheme: "pooled"            # 'pooled' | 'loro' (loro also needs loro_test_region)
+
+optim:
+  epochs: 80
+  early_stop_patience: 15
+  lr: 0.0003
+  weight_decay: 1.0e-5
+  scheduler: "cosine"
+  amp: true
+  grad_clip: 1.0
+
+loss:
+  pos_weight: 40.0
+  weight_bce: 1.0
+  weight_dice: 1.0
+
+eval:
+  primary_metric: "dice"
+  threshold_sweep: [0.10, 0.98, 0.02]
+
+seed: 42

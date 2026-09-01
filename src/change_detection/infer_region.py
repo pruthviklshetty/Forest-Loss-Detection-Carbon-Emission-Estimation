@@ -31,8 +31,13 @@ import torch
 
 from ..common import CKPT_DIR, REPO, RESULTS, get_device
 from ..models.unet import build_model
+from ..paths import masks_dir as _masks_dir
+from ..paths import period_from_proc_dir
+from ..paths import raw_dir as _raw_dir
 from ..regions import load_regions
 
+# rebound in run() from the checkpoint's stored data.proc_dir so a 2021->2023
+# checkpoint reads data/raw/2021_2023/... etc.
 RAW = REPO / "data" / "raw"
 MASKS = REPO / "data" / "masks"
 OUT = RESULTS / "deforestation"
@@ -116,8 +121,13 @@ def infer_region(rid: str, model, mean, std, thr: float, device: str, exp: str,
 
 @torch.no_grad()
 def run(experiment: str, region_ids: list[str] | None, stride: int) -> None:
+    global RAW, MASKS
     ckpt = torch.load(CKPT_DIR / f"{experiment}_best.pt", map_location="cpu", weights_only=False)
     cfg = ckpt["config"]
+    period = period_from_proc_dir(cfg["data"]["proc_dir"])
+    RAW, MASKS = _raw_dir(period=period), _masks_dir(period=period)
+    if period:
+        print(f"period: {period}  (from checkpoint data.proc_dir)")
     # authoritative operating threshold = the one src.eval.evaluate tuned on val
     ev_path = RESULTS / "metrics" / f"{experiment}.json"
     if ev_path.exists():

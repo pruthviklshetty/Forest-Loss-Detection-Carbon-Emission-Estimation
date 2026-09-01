@@ -23,6 +23,8 @@ import pathlib
 
 import ee
 
+from ..paths import masks_dir as _masks_dir
+from ..paths import raw_dir as _raw_dir
 from ..regions import load_regions
 from .eeutil import download_image_tiled, init_ee, load_cfg, write_manifest
 
@@ -90,8 +92,8 @@ def download_region(region: dict, cfg: dict, project: str, skip_existing: bool) 
     scale = int(region["gsd_m"])
     aoi = ee.Geometry.Rectangle(bbox, "EPSG:4326", geodesic=False)
     tw = cfg["time_windows"]
-    raw_dir = _REPO / "data" / "raw" / rid
-    masks_dir = _REPO / "data" / "masks" / rid
+    raw_dir = _raw_dir(cfg, rid)
+    masks_dir = _masks_dir(cfg, rid)
 
     want = [raw_dir / "s2_T.tif", raw_dir / "s2_T1.tif", masks_dir / "hansen_gfc_raw.tif"]
     if skip_existing and all(p.exists() for p in want):
@@ -137,12 +139,16 @@ def download_region(region: dict, cfg: dict, project: str, skip_existing: bool) 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--regions", default=None, help="comma-separated region ids (default: all)")
+    ap.add_argument("--config", default="configs/region.yaml",
+                    help="config file (use configs/period_2021_2023.yaml for Phase 10)")
     ap.add_argument("--skip-existing", action="store_true",
                     help="skip a region whose three rasters already exist")
     args = ap.parse_args()
 
-    cfg = load_cfg()
+    cfg = load_cfg(args.config)
     project = init_ee(cfg)
+    if cfg.get("period_id"):
+        print(f"period: {cfg['period_id']}  ->  data/*/{cfg['period_id']}/")
     print(f"Earth Engine initialised on project: {project}")
 
     regions = load_regions(cfg)
