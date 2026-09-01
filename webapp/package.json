@@ -1,0 +1,21 @@
+{
+  "name": "forest-loss-live-app",
+  "private": true,
+  "version": "0.9.0",
+  "type": "module",
+  "description": "Phase 9 live inference UI: pick a Western Ghats region + two Jan-Apr date windows, poll the FastAPI backend, show the predicted forest-loss mask, cleared hectares, committed CO2, cloud cover and the model's in-domain / out-of-training-set metrics.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "recharts": "2.13.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.3",
+    "vite": "5.4.10"
+  }
+}
