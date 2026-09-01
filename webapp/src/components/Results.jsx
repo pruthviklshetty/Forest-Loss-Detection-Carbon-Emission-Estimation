@@ -73,21 +73,33 @@ export default function Results({ job }) {
         {/* --- caveats: kept in full, reduced visual weight --- */}
 
         {mcase === 'loro' ? (
-          <Notice kind="warn" title="Not in the training set — leave-one-region-out metrics apply">
-            This area is not inside one of the four training regions, so the model
-            is in its leave-one-region-out regime. Measured mean strict IoU there
-            is{' '}
-            <b>
-              {isMissing(card?.transfer_out_of_training_set?.loro_mean_strict_iou)
-                ? PENDING
-                : num(card.transfer_out_of_training_set.loro_mean_strict_iou, 3)}
-            </b>{' '}
-            — roughly half the in-domain{' '}
-            {isMissing(card?.in_domain?.strict_iou?.mean)
-              ? PENDING
-              : num(card.in_domain.strict_iou.mean, 3)}
-            .
-          </Notice>
+          (() => {
+            const tr = card?.transfer_out_of_training_set || {}
+            const measured = tr.measured !== false
+            const period = (tr.loro_period || '').replace('_', '→')
+            const loroM = tr.loro_mean_strict_iou
+            const inD = tr.loro_in_domain_strict_iou_mean
+            return (
+              <Notice kind="warn" title="Not in the training set — leave-one-region-out regime">
+                This area is not inside one of the four training regions.{' '}
+                {measured ? (
+                  <>
+                    Leave-one-region-out mean strict IoU is{' '}
+                    <b>{isMissing(loroM) ? PENDING : num(loroM, 3)}</b> — roughly half the
+                    in-domain <b>{isMissing(inD) ? PENDING : num(inD, 3)}</b>.
+                  </>
+                ) : (
+                  <>
+                    Transfer was <b>not measured for this model</b>. For the {period} model,
+                    leave-one-region-out mean strict IoU was{' '}
+                    <b>{isMissing(loroM) ? PENDING : num(loroM, 3)}</b> (~half its in-domain{' '}
+                    <b>{isMissing(inD) ? PENDING : num(inD, 3)}</b>); treat this result as at
+                    least that limited.
+                  </>
+                )}
+              </Notice>
+            )
+          })()
         ) : (
           <Notice kind="info" title={`Inside training region: ${r.metric_case_region || '—'}`}>
             This area falls inside a training region, so the pooled in-domain

@@ -52,7 +52,16 @@ CHECKPOINT = REPO / "results" / "checkpoints" / f"{CHECKPOINT_STEM}_best.pt"
 EVAL_JSON = REPO / "results" / "metrics" / f"{CHECKPOINT_STEM}.json"
 
 # Result JSON the model card is assembled from (no metric is copied into code).
-PHASE8_SEED_RUNS = REPO / "results" / "metrics" / _SEED_RUNS_NAME
+# SEED_RUNS is the served checkpoint's own 3-seed aggregate; REFERENCE_SEED_RUNS
+# is always the 2019->2021 (Phase 8) aggregate - the model card falls back to it
+# for analyses (leave-one-region-out, the more-data finding) that were only ever
+# measured on that period, labelling them as such rather than showing nulls.
+SEED_RUNS = REPO / "results" / "metrics" / _SEED_RUNS_NAME
+REFERENCE_SEED_RUNS = REPO / "results" / "metrics" / "phase8_seed_runs.json"
+REFERENCE_PERIOD = "2019_2021"
+SERVED_PERIOD = _PERIOD
+# back-compat alias (modelcard.py historically imported this name)
+PHASE8_SEED_RUNS = SEED_RUNS
 AREA_SUMMARY = REPO / "results" / "deforestation" / f"{CHECKPOINT_STEM}_area_summary.json"
 CARBON_ESTIMATES = _CARBON_DIR / "carbon_estimates.json"
 

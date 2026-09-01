@@ -15,12 +15,19 @@ import { interval, num, PENDING, isMissing } from '../format.js'
 // Collapsed by default: the one-line summary carries the two headline IoUs;
 // the full table, notes, chart and findings live inside the expander.
 // Nothing here is hard-coded; a missing field renders as PENDING.
+const fmtPeriod = (p) => (p ? p.replace('_', '→') : null)
+
 export default function ModelCard({ card, forResult, metricCase }) {
   if (!card) return null
   const d = card.in_domain || {}
   const t = card.transfer_out_of_training_set || {}
-  const md = card.more_data_finding || {}
+  const md = card.more_data_finding // may be null - do not coerce to {}
   const loroApplies = metricCase === 'loro'
+
+  // LORO was either measured for this checkpoint's period, or carried from the
+  // 2019→2021 model and labelled as such - never a null implying a measurement.
+  const loroMeasured = t.measured !== false
+  const loroPeriod = fmtPeriod(t.loro_period)
 
   const rows = [
     ['IoU (strict, primary)', d.strict_iou],
@@ -35,7 +42,7 @@ export default function ModelCard({ card, forResult, metricCase }) {
     iou: isMissing(f.strict_iou) ? 0 : f.strict_iou,
     missing: isMissing(f.strict_iou),
   }))
-  const inDomainMean = t.in_domain_strict_iou_mean
+  const inDomainMean = t.loro_in_domain_strict_iou_mean
   const loroInterval = {
     mean: t.loro_mean_strict_iou,
     sd: t.loro_sd_strict_iou,
@@ -54,6 +61,9 @@ export default function ModelCard({ card, forResult, metricCase }) {
         <span className="modelcard__oneline">
           in-domain strict IoU <b>{interval(d.strict_iou)}</b>, out-of-region{' '}
           <b>{interval(loroInterval)}</b>
+          {!loroMeasured && loroPeriod && (
+            <> (measured on {loroPeriod}, not re-measured here)</>
+          )}
         </span>
       </summary>
 
@@ -90,16 +100,27 @@ export default function ModelCard({ card, forResult, metricCase }) {
         </table>
         <p className="muted small">{d.note}</p>
 
-        <Notice kind="warn" title="Performance outside the training set is lower">
-          <p>
-            Leave-one-region-out (train on 3 Western Ghats regions, test on the
-            4th): mean strict IoU{' '}
-            <b>{isMissing(t.loro_mean_strict_iou) ? PENDING : num(t.loro_mean_strict_iou, 3)}</b>
-            {!isMissing(t.loro_sd_strict_iou) && <> ± {num(t.loro_sd_strict_iou, 3)}</>} versus{' '}
-            <b>{isMissing(inDomainMean) ? PENDING : num(inDomainMean, 3)}</b> in-domain —
-            roughly half. Any result for a custom bbox or a non-training preset
-            should be read as limited by this gap.
-          </p>
+        <Notice
+          kind="warn"
+          title={
+            loroMeasured
+              ? 'Performance outside the training set is lower'
+              : 'Transfer was not re-measured for this model'
+          }
+        >
+          {loroMeasured ? (
+            <p>
+              Leave-one-region-out (train on 3 Western Ghats regions, test on the
+              4th{loroPeriod ? `, ${loroPeriod}` : ''}): mean strict IoU{' '}
+              <b>{isMissing(t.loro_mean_strict_iou) ? PENDING : num(t.loro_mean_strict_iou, 3)}</b>
+              {!isMissing(t.loro_sd_strict_iou) && <> ± {num(t.loro_sd_strict_iou, 3)}</>} versus{' '}
+              <b>{isMissing(inDomainMean) ? PENDING : num(inDomainMean, 3)}</b> in-domain —
+              roughly half. Any result for a custom bbox or a non-training preset
+              should be read as limited by this gap.
+            </p>
+          ) : (
+            <p>{t.note}</p>
+          )}
           {folds.length > 0 && (
             <div className="chart">
               <ResponsiveContainer width="100%" height={180}>
@@ -130,30 +151,36 @@ export default function ModelCard({ card, forResult, metricCase }) {
                 </BarChart>
               </ResponsiveContainer>
               <div className="muted small">
-                Held-out-region strict IoU per fold vs the in-domain mean (blue line).
+                Held-out-region strict IoU per fold vs the in-domain mean (blue line)
+                {!loroMeasured && loroPeriod ? `, measured on the ${loroPeriod} model` : ''}.
               </div>
             </div>
           )}
         </Notice>
 
         <div className="muted small">
-          <p>
-            <b>More data did not raise the ceiling.</b>{' '}
-            {isMissing(md.pooled_iou_mean)
-              ? PENDING
-              : `Pooled 4-region IoU ${num(md.pooled_iou_mean, 3)}`}
-            {md.wayanad_only_iou && !isMissing(md.wayanad_only_iou.mean) && (
-              <> vs single-region {num(md.wayanad_only_iou.mean, 3)} ± {num(md.wayanad_only_iou.sd, 3)}</>
-            )}
-            {!isMissing(md.delta_vs_wayanad_only) && (
-              <>
-                {' '}(Δ {md.delta_vs_wayanad_only > 0 ? '+' : ''}
-                {num(md.delta_vs_wayanad_only, 3)},{' '}
-                {md.within_seed_variance ? 'within' : 'outside'} seed variance)
-              </>
-            )}
-            .
-          </p>
+          {md && (
+            <p>
+              <b>
+                More data did not raise the ceiling
+                {md.period ? ` (${fmtPeriod(md.period)})` : ''}.
+              </b>{' '}
+              {isMissing(md.pooled_iou_mean)
+                ? PENDING
+                : `Pooled 4-region IoU ${num(md.pooled_iou_mean, 3)}`}
+              {md.wayanad_only_iou && !isMissing(md.wayanad_only_iou.mean) && (
+                <> vs single-region {num(md.wayanad_only_iou.mean, 3)} ± {num(md.wayanad_only_iou.sd, 3)}</>
+              )}
+              {!isMissing(md.delta_vs_wayanad_only) && (
+                <>
+                  {' '}(Δ {md.delta_vs_wayanad_only > 0 ? '+' : ''}
+                  {num(md.delta_vs_wayanad_only, 3)},{' '}
+                  {md.within_seed_variance ? 'within' : 'outside'} seed variance)
+                </>
+              )}
+              .
+            </p>
+          )}
           <p>{card.label_resolution_note}</p>
         </div>
       </div>
