@@ -1,0 +1,217 @@
+{
+  "pooled": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "early_stop_patience": 15,
+    "runs": [
+      {
+        "stem": "p8_pooled_unet_s42",
+        "stop_epoch": 29,
+        "best_epoch": 14,
+        "best_val_dice": 0.3212,
+        "early_stopped": true,
+        "operating_threshold": 0.96,
+        "n_test_patches": 76,
+        "test_iou": 0.19076354080489605,
+        "test_strict_iou": 0.190764,
+        "test_tolerance_iou": 0.284637,
+        "test_dice": 0.32040541092810004,
+        "test_precision": 0.3770318361065329,
+        "test_recall": 0.2785673678226067,
+        "seed": 42
+      },
+      {
+        "stem": "p8_pooled_unet_s43",
+        "stop_epoch": 41,
+        "best_epoch": 26,
+        "best_val_dice": 0.31618,
+        "early_stopped": true,
+        "operating_threshold": 0.98,
+        "n_test_patches": 76,
+        "test_iou": 0.14551311030740588,
+        "test_strict_iou": 0.145513,
+        "test_tolerance_iou": 0.199763,
+        "test_dice": 0.2540575205959127,
+        "test_precision": 0.415389578964282,
+        "test_recall": 0.18298749289367658,
+        "seed": 43
+      },
+      {
+        "stem": "p8_pooled_unet_s44",
+        "stop_epoch": 38,
+        "best_epoch": 23,
+        "best_val_dice": 0.31744,
+        "early_stopped": true,
+        "operating_threshold": 0.72,
+        "n_test_patches": 76,
+        "test_iou": 0.1916900420757296,
+        "test_strict_iou": 0.19169,
+        "test_tolerance_iou": 0.34425,
+        "test_dice": 0.3217112425339006,
+        "test_precision": 0.2745166959578069,
+        "test_recall": 0.3885019897668854,
+        "seed": 44
+      }
+    ],
+    "summary": {
+      "test_strict_iou": {
+        "mean": 0.176,
+        "sd": 0.0264,
+        "values": [
+          0.1908,
+          0.1455,
+          0.1917
+        ]
+      },
+      "test_tolerance_iou": {
+        "mean": 0.2762,
+        "sd": 0.0726,
+        "values": [
+          0.2846,
+          0.1998,
+          0.3443
+        ]
+      },
+      "test_dice": {
+        "mean": 0.2987,
+        "sd": 0.0387,
+        "values": [
+          0.3204,
+          0.2541,
+          0.3217
+        ]
+      },
+      "test_precision": {
+        "mean": 0.3556,
+        "sd": 0.0728,
+        "values": [
+          0.377,
+          0.4154,
+          0.2745
+        ]
+      },
+      "test_recall": {
+        "mean": 0.2834,
+        "sd": 0.1028,
+        "values": [
+          0.2786,
+          0.183,
+          0.3885
+        ]
+      },
+      "best_val_dice": {
+        "mean": 0.3183,
+        "sd": 0.0026,
+        "values": [
+          0.3212,
+          0.3162,
+          0.3174
+        ]
+      },
+      "stop_epoch": [
+        29,
+        41,
+        38
+      ],
+      "best_epoch": [
+        14,
+        26,
+        23
+      ],
+      "operating_threshold": [
+        0.96,
+        0.98,
+        0.72
+      ]
+    }
+  },
+  "loro": {
+    "seed": 42,
+    "runs": [
+      {
+        "stem": "p8_loro_wayanad",
+        "stop_epoch": 24,
+        "best_epoch": 9,
+        "best_val_dice": 0.33944,
+        "early_stopped": true,
+        "operating_threshold": 0.9,
+        "n_test_patches": 110,
+        "test_iou": 0.08517398169815107,
+        "test_strict_iou": 0.085174,
+        "test_tolerance_iou": 0.154957,
+        "test_dice": 0.15697755960729037,
+        "test_precision": 0.1252552947430231,
+        "test_recall": 0.21021740151194016,
+        "test_region": "wayanad",
+        "transfer_gap_vs_pooled": 0.0908
+      },
+      {
+        "stem": "p8_loro_kodagu",
+        "stop_epoch": 37,
+        "best_epoch": 22,
+        "best_val_dice": 0.35808,
+        "early_stopped": true,
+        "operating_threshold": 0.94,
+        "n_test_patches": 110,
+        "test_iou": 0.10322580645160886,
+        "test_strict_iou": 0.103226,
+        "test_tolerance_iou": 0.160821,
+        "test_dice": 0.18713450292396996,
+        "test_precision": 0.3255641879392865,
+        "test_recall": 0.1313040883318347,
+        "test_region": "kodagu",
+        "transfer_gap_vs_pooled": 0.0728
+      },
+      {
+        "stem": "p8_loro_nilgiris",
+        "stop_epoch": 64,
+        "best_epoch": 49,
+        "best_val_dice": 0.28037,
+        "early_stopped": true,
+        "operating_threshold": 0.66,
+        "n_test_patches": 120,
+        "test_iou": 0.06323946416348726,
+        "test_strict_iou": 0.063239,
+        "test_tolerance_iou": 0.148211,
+        "test_dice": 0.1189562018622803,
+        "test_precision": 0.09602821083889769,
+        "test_recall": 0.1562669888251189,
+        "test_region": "nilgiris",
+        "transfer_gap_vs_pooled": 0.1128
+      },
+      {
+        "stem": "p8_loro_anamalai",
+        "stop_epoch": 53,
+        "best_epoch": 38,
+        "best_val_dice": 0.33495,
+        "early_stopped": true,
+        "operating_threshold": 0.9,
+        "n_test_patches": 120,
+        "test_iou": 0.11697725605282124,
+        "test_strict_iou": 0.116977,
+        "test_tolerance_iou": 0.172355,
+        "test_dice": 0.20945324610493132,
+        "test_precision": 0.16107653762223548,
+        "test_recall": 0.2993616222305445,
+        "test_region": "anamalai",
+        "transfer_gap_vs_pooled": 0.059
+      }
+    ],
+    "mean_strict_iou": 0.0922,
+    "sd_strict_iou": 0.0233
+  },
+  "reference_wayanad_only_pooled_iou": {
+    "mean": 0.158,
+    "sd": 0.016,
+    "note": "Phase 4 single-region (Wayanad) pooled-split test IoU, 3 seeds"
+  },
+  "did_more_data_help": {
+    "pooled_iou_mean": 0.176,
+    "pooled_iou_sd": 0.0264,
+    "delta_vs_wayanad_only": 0.018,
+    "within_seed_variance": true
+  }
+}
