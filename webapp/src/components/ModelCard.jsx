@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -17,7 +18,19 @@ import { interval, num, PENDING, isMissing } from '../format.js'
 // Nothing here is hard-coded; a missing field renders as PENDING.
 const fmtPeriod = (p) => (p ? p.replace('_', '→') : null)
 
+// Finite number or null - guards Math.max()/recharts against non-finite or
+// missing values producing a degenerate axis (e.g. Infinity/NaN collapsing to
+// a huge bogus "nice" tick).
+const finite = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
+
 export default function ModelCard({ card, forResult, metricCase }) {
+  // Native <details> hides its body with display:none when closed. Recharts'
+  // ResponsiveContainer measures its container on mount; measuring a 0x0
+  // hidden element degenerates the axis scale into a bogus huge tick. Only
+  // mount the chart once the card is actually open, so it always measures a
+  // visible container.
+  const [open, setOpen] = useState(false)
+
   if (!card) return null
   const d = card.in_domain || {}
   const t = card.transfer_out_of_training_set || {}
@@ -42,20 +55,20 @@ export default function ModelCard({ card, forResult, metricCase }) {
     iou: isMissing(f.strict_iou) ? 0 : f.strict_iou,
     missing: isMissing(f.strict_iou),
   }))
-  const inDomainMean = t.loro_in_domain_strict_iou_mean
+  const inDomainMean = finite(t.loro_in_domain_strict_iou_mean)
   const loroInterval = {
     mean: t.loro_mean_strict_iou,
     sd: t.loro_sd_strict_iou,
   }
-  const yMax =
-    Math.max(
-      isMissing(inDomainMean) ? 0 : inDomainMean,
-      ...folds.map((f) => f.iou),
-      0.05,
-    ) * 1.15
+  // Every candidate coerced to a finite number (or dropped) before Math.max,
+  // so a stray null/NaN/Infinity can never produce a runaway axis top. IoU is
+  // bounded [0, 1] regardless of what the data says.
+  const yCandidates = [inDomainMean, ...folds.map((f) => finite(f.iou)), 0.05]
+    .filter((v) => v !== null)
+  const yMax = Math.min(Math.max(...yCandidates, 0.05) * 1.15, 1)
 
   return (
-    <details className="card modelcard">
+    <details className="card modelcard" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="modelcard__summary">
         <span className="modelcard__toggle">Model performance details</span>
         <span className="modelcard__oneline">
@@ -121,20 +134,22 @@ export default function ModelCard({ card, forResult, metricCase }) {
           ) : (
             <p>{t.note}</p>
           )}
-          {folds.length > 0 && (
+          {folds.length > 0 && !open && (
+            <p className="muted small">(chart shown once this card is expanded)</p>
+          )}
+          {folds.length > 0 && open && (
             <div className="chart">
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={folds} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} domain={[0, yMax]} />
+                  <YAxis tick={{ fontSize: 11 }} domain={[0, yMax]} allowDataOverflow />
                   <Tooltip formatter={(v, _n, p) => (p.payload.missing ? PENDING : num(v, 3))} />
-                  {!isMissing(inDomainMean) && (
+                  {inDomainMean !== null && (
                     <ReferenceLine
                       y={inDomainMean}
                       stroke="#2563eb"
                       strokeWidth={1.5}
                       strokeDasharray="4 3"
-                      ifOverflow="extendDomain"
                       label={{
                         value: `in-domain ${num(inDomainMean, 3)}`,
                         position: 'insideTopLeft',
