@@ -1,10 +1,9 @@
-# Backend-only additions. Install the project requirements first:
-#   pip install -r ../requirements.txt
-# then:
-#   pip install -r requirements.txt
+# The backend needs no packages beyond the project's root requirements.txt,
+# which now includes fastapi / uvicorn / pydantic. Install once from the repo
+# root:
+#     pip install -r requirements.txt
 #
-# torch/rasterio/earthengine-api/Pillow/scipy all come from ../requirements.txt.
-
+# This file is kept as an explicit record of the serving-only dependencies.
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.3

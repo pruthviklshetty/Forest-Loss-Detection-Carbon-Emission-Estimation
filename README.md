@@ -56,10 +56,14 @@ src/models/         U-Net baseline, Attention U-Net + MobileNetV2
 src/change_detection/  bi-temporal mask comparison, hectare conversion
 src/carbon/         NDVI computation, 3-bin baseline, regression model
 src/eval/           metrics, comparison runner, figure generation
+src/regions.py      multi-region config access (Phase 8)
 results/metrics/    real IoU / Dice / pixel-accuracy per model (JSON/CSV)
 results/figures/    input / ground-truth / prediction triptychs
 results/carbon_validation/  estimated vs. published CO₂ comparison
 configs/            YAML configs per experiment
+frontend/           static results dashboard (Vite + React, reads results/*.json)
+backend/            Phase 9 live inference service (FastAPI, serves the Phase 8 checkpoint)
+webapp/             Phase 9 live inference UI (Vite + React, talks to backend/)
 ```
 
 ## Phase status
@@ -80,6 +84,21 @@ history (`c9947eb`, `82f6948`).
 | 6 | Carbon estimation module | done — GFC ref area: regression 94.3 ktCO₂ vs 3-bin 116.7 ktCO₂ (~19% lower) |
 | 7 | Evaluation, validation & short paper | done — `report.md`, leakage audit, seed-variance analysis, CO₂ sanity-check vs GFW |
 | audit | Leakage fix + multi-seed re-run | done — `scripts/verify_no_leakage.py` exits 0; `scripts/aggregate_seeds.py` |
+| 8 | Multi-region training data (4 Western Ghats blocks) | done — pooled test IoU 0.176 ± 0.026 (within seed variance of the single-region 0.158 ± 0.016); leave-one-region-out mean 0.092 (poor transfer). `docs/phase8_notes.md`, `report.md` §5.8 |
+| 9 | Live inference app | code committed (`backend/`, `webapp/`); needs `pip install` + `npm install`, an Earth Engine service-account key, local end-to-end test, then Render deploy |
+
+## Live inference app (Phase 9)
+
+`backend/` is a FastAPI service that serves the Phase 8 carry-forward checkpoint:
+a request names a Western Ghats region (or a custom bbox inside the domain
+extent) and two January–April date windows; the backend pulls the Sentinel-2
+composites from Earth Engine, runs the tiled model, and returns the loss mask,
+cleared hectares and committed aboveground CO₂. `webapp/` is the Vite + React UI
+that drives it. The model domain (Western Ghats moist forest, Jan–Apr, change
+between two increasing years) is enforced server-side — out-of-domain requests
+are refused, not warned. Earth Engine auth is a **service-account JSON key** from
+`EE_SERVICE_ACCOUNT_KEY` (never committed). Setup and deployment notes are in
+[`backend/README.md`](backend/README.md) and [`webapp/README.md`](webapp/README.md).
 
 ## Ground rules
 

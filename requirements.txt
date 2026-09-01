@@ -42,3 +42,8 @@ requests==2.32.3
 PyYAML==6.0.2
 matplotlib==3.9.2
 tqdm==4.66.5
+
+# --- Phase 9 live inference service (backend/) ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
