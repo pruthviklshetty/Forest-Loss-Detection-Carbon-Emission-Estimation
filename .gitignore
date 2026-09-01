@@ -40,10 +40,17 @@ data/processed/*
 !data/processed/split.json
 !data/processed/loro.json
 !data/processed/norm_stats.json
+# period-scoped datasets (Phase 10 onward): re-include the dir, keep its text artifacts
+!data/processed/*/
+!data/processed/*/index.csv
+!data/processed/*/split.json
+!data/processed/*/loro.json
+!data/processed/*/norm_stats.json
 
 # Results binaries (keep metrics JSON/CSV and markdown, ignore heavy figures if needed)
 results/figures/*.png
 results/metrics/phase8_train_log.txt
+results/metrics/phase10_pipeline_log.txt
 !results/figures/.gitkeep
 
 # OS / Office temp files
