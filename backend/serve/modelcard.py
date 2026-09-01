@@ -50,8 +50,8 @@ def build_model_card() -> dict:
         "recall": _interval(pooled_sum, "test_recall"),
         "seeds": pooled.get("seeds"),
         "note": "pooled 4-region held-out test split; mean +/- sd over the seeds "
-                "listed; strict IoU is primary, tolerance IoU dilates the 30 m "
-                "Hansen label by one cell (+/-3 px) and is secondary.",
+                "listed. Strict IoU is primary; the +/-3 px tolerance IoU is "
+                "secondary.",
     }
 
     # out-of-training-set (leave-one-region-out) - surfaced because it is lower

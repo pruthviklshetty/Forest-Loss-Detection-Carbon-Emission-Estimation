@@ -49,9 +49,17 @@ export default function App() {
 
   const busy = submitting || (job && job.status !== 'done' && job.status !== 'failed')
 
-  const pointReady =
-    mode !== 'point' ||
-    (point && point.center && point.derived && point.derived.inside_domain_extent)
+  // Why the Run button is unavailable (null = ready). Shown next to the button.
+  let submitBlockReason = null
+  if (mode === 'point') {
+    if (!point?.center) submitBlockReason = 'pick a centre point first'
+    else if (!point.derived) submitBlockReason = 'waiting for the map…'
+    else if (!point.derived.inside_domain_extent)
+      submitBlockReason = 'move the centre inside the domain extent'
+  } else if (mode === 'preset' && !regionId) {
+    submitBlockReason = 'pick a region first'
+  }
+  const pointReady = submitBlockReason === null
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -99,13 +107,13 @@ export default function App() {
   return (
     <div className="wrap">
       <header className="head">
-        <h1>Western Ghats forest-loss — live inference</h1>
+        <h1>Forest Loss Detection and Carbon Emission Estimation</h1>
         <p className="muted">
-          Pick a place and a radius (or a preset region) and two January–April
-          windows; the backend pulls Sentinel-2 from Earth Engine for those
-          coordinates, runs the Phase 8 model, and returns the loss mask,
-          hectares and committed CO₂. It fetches imagery itself — it does not take
-          uploaded photos or map screenshots.
+          Live inference over Western Ghats Sentinel-2 imagery: pick a place and
+          radius (or a preset region) and two January–April windows; the backend
+          pulls the imagery from Earth Engine, runs the model, and returns the
+          loss mask, hectares and committed CO₂. It fetches the imagery itself —
+          no uploads.
         </p>
       </header>
 
@@ -140,6 +148,9 @@ export default function App() {
           <button type="submit" className="primary" disabled={busy || !pointReady}>
             {busy ? 'Running…' : 'Run inference'}
           </button>
+          {!busy && submitBlockReason && (
+            <span className="muted small">{submitBlockReason}</span>
+          )}
           {submitError && <span className="error-text">{submitError}</span>}
         </div>
       </form>

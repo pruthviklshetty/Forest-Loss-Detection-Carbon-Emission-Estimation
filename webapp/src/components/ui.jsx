@@ -38,3 +38,14 @@ export function Field({ label, children, hint }) {
     </label>
   )
 }
+
+// Native <details> disclosure. `summary` is the always-visible line; children
+// render only when expanded. Used to reduce visual weight without hiding info.
+export function Expander({ summary, children, className, open }) {
+  return (
+    <details className={`expander${className ? ` ${className}` : ''}`} open={open}>
+      <summary className="expander__summary">{summary}</summary>
+      <div className="expander__body">{children}</div>
+    </details>
+  )
+}

@@ -131,7 +131,57 @@ button.primary:disabled { opacity: 0.55; cursor: default; }
 .cloud-win__row { display: flex; justify-content: space-between; font-size: 14px; padding: 2px 0; }
 .cloud-win__flag { margin-top: 8px; font-size: 12px; color: var(--warn-ink); }
 
-/* model card */
+/* results headline - the largest, highest-contrast elements on the page */
+.results .card__title { font-size: 15px; color: var(--muted); font-weight: 600; }
+.headline {
+  display: flex; flex-wrap: wrap; gap: 14px 40px;
+  margin: 6px 0 16px;
+}
+.headline__stat { min-width: 160px; }
+.headline__value {
+  font-size: 2.6rem; line-height: 1.05; font-weight: 750;
+  color: var(--ink); letter-spacing: -0.01em;
+}
+.headline__label { margin-top: 4px; font-size: 13px; color: var(--muted); }
+
+/* item-5 facts: legible, inline, a tier above the truly-secondary block */
+.result-facts { margin: 12px 0 4px; display: grid; gap: 10px; }
+.result-facts > div {
+  display: grid; grid-template-columns: 220px auto; gap: 2px 12px;
+  align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line);
+}
+.result-facts__k { font-size: 13px; color: var(--muted); }
+.result-facts__v { font-size: 15px; font-weight: 650; }
+.result-facts .muted.small { grid-column: 1 / -1; }
+
+/* secondary facts under the fold - kept in full, low weight */
+dl.secondary { margin: 14px 0 0; display: grid; gap: 10px; }
+dl.secondary div { display: grid; gap: 2px; }
+dl.secondary dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+dl.secondary dd { margin: 0; font-size: 14px; }
+
+/* disclosure / expander */
+.expander { margin: 8px 0 2px; }
+.expander__summary {
+  cursor: pointer; font-size: 13px; color: var(--accent-ink);
+  padding: 2px 0; list-style: revert;
+}
+.expander__summary:hover { text-decoration: underline; }
+.expander__body { padding: 8px 0 2px; }
+.expander[open] > .expander__summary { margin-bottom: 4px; }
+
+/* model card - collapsed by default, sits below the results block */
+.modelcard { padding: 0; }
+.modelcard__summary {
+  cursor: pointer; padding: 14px 18px; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 6px 14px; list-style: revert;
+}
+.modelcard__summary:hover { background: #fbfcfb; }
+.modelcard__toggle { font-weight: 650; font-size: 15px; }
+.modelcard__oneline { font-size: 13px; color: var(--muted); }
+.modelcard__body { padding: 0 18px 16px; }
+
+/* model card internals */
 table.metrics { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 8px; }
 table.metrics th, table.metrics td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 table.metrics th { color: var(--muted); font-weight: 600; }
