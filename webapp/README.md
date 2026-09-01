@@ -1,25 +1,42 @@
 # Live inference UI (Phase 9 frontend)
 
-Vite + React + plain CSS + Recharts. Talks to the FastAPI service in
+Vite + React + plain CSS + Recharts + Leaflet. Talks to the FastAPI service in
 [`../backend`](../backend). Separate from [`../frontend`](../frontend), which is
 the static results dashboard.
 
 ## Flow
 
-1. **Region** — a preset (four Phase 8 training blocks + three in-domain
-   non-training blocks) or a custom bounding box.
+1. **Area of interest** — three modes:
+   - **Point & radius** (default) — drop a centre point by clicking a Leaflet/OSM
+     map or by searching a place name (Nominatim, via the backend; ambiguous
+     queries show all candidates and you pick). Choose a radius: 5, 10 or 20 km.
+     The map draws the *authoritative* snapped bbox (from `/derive-bbox`) — a
+     whole number of 2.56 km model tiles — and states whether it's in a training
+     region (`pooled` metrics) or not (`loro` metrics), before you submit. An AOI
+     smaller than one tile, or outside the domain extent, is blocked.
+   - **Preset region** — the four Phase 8 training blocks + three in-domain
+     non-training blocks.
+   - **Advanced: bounding box** — raw `[W,S,E,N]`, fallback path.
 2. **Date windows** — two Jan–Apr windows, defaulting to the training composites
    (2019 vs 2021).
-3. **Run** — `POST /jobs`; the domain gate rejects out-of-extent bboxes,
-   non-Jan–Apr windows and oversized areas with the backend's message.
-4. **Poll** — `GET /jobs/{id}` every 2 s with a visible progress bar and step
-   list (queued → fetching → inferring → estimating → done).
-5. **Results** — prediction overlay PNG, predicted cleared hectares, committed
-   CO₂ (exponential regression primary + 3-bin baseline, with the
-   aboveground/CO₂-only scope stated), cloud / no-data cover and scene count for
-   **both** composites with a prominent flag when either is poor, and the model
-   card: in-domain test metrics as mean ± sd plus the leave-one-region-out
-   numbers showing out-of-training-set accuracy is roughly half.
+3. **Run** — `POST /jobs`; the domain gate rejects out-of-extent areas, sub-tile
+   areas, non-Jan–Apr windows and oversized boxes with the backend's message.
+4. **Poll** — `GET /jobs/{id}` every 2 s with a progress bar and step list
+   (queued → fetching → inferring → estimating → done).
+5. **Results** — prediction overlay PNG; the **raw predicted pixel count** next to
+   predicted hectares (so you can see how thin the signal is); the hectares
+   flagged as *not calibrated* with the measured pred/GFC ratio; committed CO₂
+   (exponential regression primary + 3-bin baseline, aboveground/CO₂-only scope
+   stated); cloud / no-data cover + scene count for **both** composites with a
+   prominent flag when either is poor; and the model card headlining the
+   **applicable metric case** — for a `loro` AOI (the common point-and-radius
+   case) the leave-one-region-out figure (~0.092), not the pooled one, with a
+   note that the area was not in the training set. Any AOI under ~25 km² also
+   carries a "zero is expected, non-zero is provisional" caveat.
+
+The app fetches Sentinel-2 from Earth Engine for the chosen coordinates. It does
+**not** accept uploaded photos, screenshots or map images — the model needs
+bands B3/B4/B8/B11 at two dates, which an RGB image does not contain.
 
 ## Ground rules honoured
 

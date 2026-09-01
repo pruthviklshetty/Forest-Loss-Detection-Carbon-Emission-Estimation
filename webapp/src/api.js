@@ -30,6 +30,11 @@ export const getModelCard = () => j('/model-card')
 export const getJob = (id) => j(`/jobs/${id}`)
 export const maskUrl = (id) => `${API_BASE}/jobs/${id}/mask.png`
 
+export const geocodePlace = (q) => j(`/geocode?q=${encodeURIComponent(q)}`)
+
+export const deriveBbox = (lat, lon, radiusKm) =>
+  j(`/derive-bbox?lat=${lat}&lon=${lon}&radius_km=${radiusKm}`)
+
 export function createJob(payload) {
   return j('/jobs', {
     method: 'POST',

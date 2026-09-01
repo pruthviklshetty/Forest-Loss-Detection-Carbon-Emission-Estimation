@@ -19,9 +19,10 @@ export default function App() {
   const [modelCard, setModelCard] = useState(null)
   const [loadError, setLoadError] = useState(null)
 
-  const [mode, setMode] = useState('preset')
+  const [mode, setMode] = useState('point')
   const [regionId, setRegionId] = useState('')
   const [bbox, setBbox] = useState(['76.00', '11.55', '76.28', '11.80'])
+  const [point, setPoint] = useState(null) // { center:[lat,lon], radius_km, derived }
   const [windows, setWindows] = useState(DEFAULT_WINDOWS)
 
   const [submitting, setSubmitting] = useState(false)
@@ -48,6 +49,10 @@ export default function App() {
 
   const busy = submitting || (job && job.status !== 'done' && job.status !== 'failed')
 
+  const pointReady =
+    mode !== 'point' ||
+    (point && point.center && point.derived && point.derived.inside_domain_extent)
+
   async function onSubmit(e) {
     e.preventDefault()
     setSubmitError(null)
@@ -56,11 +61,12 @@ export default function App() {
 
     const payload = { ...windows }
     if (mode === 'preset') {
-      if (!regionId) {
-        setSubmitError('Pick a region first.')
-        return
-      }
+      if (!regionId) return setSubmitError('Pick a region first.')
       payload.region_id = regionId
+    } else if (mode === 'point') {
+      if (!point?.center) return setSubmitError('Set a centre point first.')
+      payload.center = point.center
+      payload.radius_km = point.radius_km
     } else {
       payload.bbox_wsen = bbox.map(Number)
     }
@@ -70,7 +76,7 @@ export default function App() {
       const created = await createJob(payload)
       setJob({ id: created.id, status: created.status, progress: 0, message: 'queued' })
       stopRef.current = pollJob(created.id, {
-        onTick: (j) => setJob((prev) => ({ ...prev, ...j })),
+        onTick: (jj) => setJob((prev) => ({ ...prev, ...jj })),
       })
     } catch (err) {
       setSubmitError(err.message)
@@ -95,24 +101,30 @@ export default function App() {
       <header className="head">
         <h1>Western Ghats forest-loss — live inference</h1>
         <p className="muted">
-          Pick a region and two January–April windows; the backend pulls Sentinel-2
-          from Earth Engine, runs the Phase 8 model, and returns the loss mask,
-          hectares and committed CO₂.
+          Pick a place and a radius (or a preset region) and two January–April
+          windows; the backend pulls Sentinel-2 from Earth Engine for those
+          coordinates, runs the Phase 8 model, and returns the loss mask,
+          hectares and committed CO₂. It fetches imagery itself — it does not take
+          uploaded photos or map screenshots.
         </p>
       </header>
 
       <DomainNotice domain={domain} />
 
       <form onSubmit={onSubmit}>
-        <Card title="1 · Region">
+        <Card title="1 · Area of interest">
           <RegionPicker
             regions={regions}
+            domain={domain}
+            radiusPresets={domain?.radius_presets_km}
             mode={mode}
             setMode={setMode}
             regionId={regionId}
             setRegionId={setRegionId}
             bbox={bbox}
             setBbox={setBbox}
+            point={point}
+            setPoint={setPoint}
           />
         </Card>
 
@@ -125,7 +137,7 @@ export default function App() {
         </Card>
 
         <div className="actions">
-          <button type="submit" className="primary" disabled={busy}>
+          <button type="submit" className="primary" disabled={busy || !pointReady}>
             {busy ? 'Running…' : 'Run inference'}
           </button>
           {submitError && <span className="error-text">{submitError}</span>}

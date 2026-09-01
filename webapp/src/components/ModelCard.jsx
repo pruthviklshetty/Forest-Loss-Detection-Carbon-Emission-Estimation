@@ -13,11 +13,12 @@ import { interval, num, PENDING, isMissing } from '../format.js'
 
 // The model's own scorecard, read live from results/**.json via the backend.
 // Nothing here is hard-coded; a missing field renders as PENDING.
-export default function ModelCard({ card, forResult }) {
+export default function ModelCard({ card, forResult, metricCase }) {
   if (!card) return null
   const d = card.in_domain || {}
   const t = card.transfer_out_of_training_set || {}
   const md = card.more_data_finding || {}
+  const loroApplies = metricCase === 'loro'
 
   const rows = [
     ['IoU (strict, primary)', d.strict_iou],
@@ -43,6 +44,13 @@ export default function ModelCard({ card, forResult }) {
           : undefined
       }
     >
+      {loroApplies && forResult && (
+        <p className="muted small">
+          The pooled numbers in this table are <b>not</b> the applicable case for
+          your result — that area is outside the training set, so the
+          leave-one-region-out figures below apply.
+        </p>
+      )}
       <table className="metrics">
         <thead>
           <tr>

@@ -1,37 +1,47 @@
 import { Field } from './ui.jsx'
+import MapPicker from './MapPicker.jsx'
 
-// Region selection: a preset (4 training blocks + 3 in-extent extras) or a
-// custom bbox. Presets that are not in the training set are labelled so, and
-// the results page repeats the out-of-training-set performance caveat.
+// Area-of-interest picker. Three modes:
+//   point  (default) - centre point (map click or place search) + radius button
+//   preset           - one of the four training blocks or three in-domain extras
+//   bbox             - advanced / fallback: raw [W,S,E,N]
 export default function RegionPicker({
   regions,
+  domain,
+  radiusPresets,
   mode,
   setMode,
   regionId,
   setRegionId,
   bbox,
   setBbox,
+  point,
+  setPoint,
 }) {
   const selected = regions?.find((r) => r.id === regionId)
 
   return (
     <div className="picker">
       <div className="picker__tabs">
-        <button
-          type="button"
-          className={mode === 'preset' ? 'active' : ''}
-          onClick={() => setMode('preset')}
-        >
+        <button type="button" className={mode === 'point' ? 'active' : ''} onClick={() => setMode('point')}>
+          Point &amp; radius
+        </button>
+        <button type="button" className={mode === 'preset' ? 'active' : ''} onClick={() => setMode('preset')}>
           Preset region
         </button>
-        <button
-          type="button"
-          className={mode === 'bbox' ? 'active' : ''}
-          onClick={() => setMode('bbox')}
-        >
-          Custom bounding box
+        <button type="button" className={mode === 'bbox' ? 'active' : ''} onClick={() => setMode('bbox')}>
+          Advanced: bounding box
         </button>
       </div>
+
+      {mode === 'point' && (
+        <MapPicker
+          domain={domain}
+          radiusPresets={radiusPresets}
+          value={point}
+          onChange={setPoint}
+        />
+      )}
 
       {mode === 'preset' && (
         <>
@@ -57,13 +67,11 @@ export default function RegionPicker({
               </div>
               {!selected.in_training_set && (
                 <div className="picker__warn">
-                  Not a training region — expect measurably lower accuracy (see the
+                  Not a training region — leave-one-region-out metrics apply (see the
                   model card below).
                 </div>
               )}
-              {selected.admin_context && (
-                <p className="muted small">{selected.admin_context}</p>
-              )}
+              {selected.admin_context && <p className="muted small">{selected.admin_context}</p>}
             </div>
           )}
         </>
@@ -86,8 +94,9 @@ export default function RegionPicker({
             </Field>
           ))}
           <p className="muted small span-all">
-            Must be fully inside the Western Ghats domain extent. The backend
-            re-checks and rejects anything outside it.
+            Fallback path. Must be fully inside the Western Ghats domain extent and
+            at least one 2.56 km model tile on each side. The backend re-checks and
+            rejects anything outside those bounds.
           </p>
         </div>
       )}

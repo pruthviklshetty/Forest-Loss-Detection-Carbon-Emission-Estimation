@@ -138,6 +138,40 @@ table.metrics th { color: var(--muted); font-weight: 600; }
 table.metrics tr.pending td { color: var(--muted); font-style: italic; }
 .chart { margin: 10px 0 4px; }
 
+/* map + point-and-radius picker */
+.mappick { display: flex; flex-direction: column; gap: 12px; }
+.mappick__map { height: 340px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.mappick__map .leaflet-container { height: 100%; width: 100%; font: inherit; }
+
+.geo__row { display: flex; gap: 8px; }
+.geo__row input { flex: 1; }
+.geo__row button {
+  border: 1px solid var(--line); background: #fff; border-radius: 6px;
+  padding: 0 14px; cursor: pointer;
+}
+.geo__cands { list-style: none; margin: 8px 0 0; padding: 0; border: 1px solid var(--line);
+  border-radius: 8px; overflow: hidden; }
+.geo__cands li + li { border-top: 1px solid var(--line); }
+.geo__cands button {
+  width: 100%; text-align: left; background: #fff; border: 0; padding: 8px 10px;
+  cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+}
+.geo__cands button:hover { background: #f1f4f2; }
+.geo__name { font-size: 13px; }
+
+.radius { display: flex; align-items: center; gap: 8px; }
+.radius__label { color: var(--muted); font-size: 13px; }
+.radius button {
+  border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  padding: 6px 14px; cursor: pointer; font-size: 13px;
+}
+.radius button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.derived { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; background: #fbfcfb; }
+.derived--bad { border-color: var(--danger-line); background: var(--danger-bg); }
+.derived__bad { margin-top: 6px; color: var(--danger-ink); font-weight: 600; }
+
 .foot { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; }
 
 @media (max-width: 640px) {
