@@ -20,9 +20,9 @@ REGION_CFG = REPO / "configs" / "region.yaml"
 # model's config, norm_stats path and val-tuned threshold are still read from
 # the checkpoint / its eval JSON at load time - nothing about the model is
 # hard-coded here.
-#   p8_pooled_unet_s44   -> 2019->2021 (Phase 8), the paper's basis  [default]
-#   p10_pooled_unet_s<n>  -> 2021->2023 (Phase 10)
-CHECKPOINT_STEM = os.environ.get("SERVE_CHECKPOINT_STEM", "p8_pooled_unet_s44")
+#   p10_pooled_unet_s43  -> 2021->2023 (Phase 10), the more recent data  [default]
+#   p8_pooled_unet_s44   -> 2019->2021 (Phase 8), the paper's basis
+CHECKPOINT_STEM = os.environ.get("SERVE_CHECKPOINT_STEM", "p10_pooled_unet_s43")
 
 # Training window shown on the results page, keyed by checkpoint-stem prefix.
 # (The stems do not carry their acquisition dates; this is the one lookup.)

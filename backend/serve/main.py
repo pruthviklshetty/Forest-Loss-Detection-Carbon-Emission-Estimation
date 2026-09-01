@@ -26,10 +26,9 @@ from pydantic import BaseModel, Field
 
 from .config import (CHECKPOINT, CLOUD_FLAG_PCT, JOB_TIMEOUT_S, JOBS_DIR,
                      MAX_AREA_KM2, MAX_RADIUS_KM, MIN_SCENES, SMALL_AREA_KM2,
-                     TILE_KM)
+                     TILE_KM, TRAINING_WINDOW)
 from .domain import (DomainError, derive_bbox_from_point, domain_extent,
-                     metric_case_for_bbox, preset_regions, resolve_request,
-                     training_windows)
+                     metric_case_for_bbox, preset_regions, resolve_request)
 from .geocode import GeocodeError, geocode
 from .jobs import JobStore
 from .modelcard import build_model_card
@@ -79,11 +78,28 @@ def regions() -> dict:
     return {"regions": preset_regions()}
 
 
+def _served_training_windows() -> dict | None:
+    """The served checkpoint's training window, shaped like region.yaml's
+    time_windows so the frontend can default its date pickers to it."""
+    tw = TRAINING_WINDOW
+    if not (tw.get("t") and tw.get("t1")):
+        return None
+    return {
+        "T": {"label": tw["t"][0][:4], "start": tw["t"][0], "end": tw["t"][1]},
+        "T_plus_1": {"label": tw["t1"][0][:4], "start": tw["t1"][0], "end": tw["t1"][1]},
+        "period": tw.get("period"),
+        "gfc_lossyear": tw.get("gfc_lossyear"),
+    }
+
+
 @app.get("/domain")
 def domain() -> dict:
+    tw = _served_training_windows()
+    yrs = (f"{tw['T']['label']} vs {tw['T_plus_1']['label']}"
+           if tw else "the training window")
     return {
         "domain_extent_wsen": domain_extent(),
-        "training_windows": training_windows(),
+        "training_windows": tw,
         "accepted_months": [1, 2, 3, 4],
         "caps": {
             "max_area_km2": MAX_AREA_KM2,
@@ -96,10 +112,10 @@ def domain() -> dict:
             "min_scenes": MIN_SCENES,
         },
         "radius_presets_km": [5, 10, 20],
-        "note": "The model was trained on Western Ghats moist forest, Jan-Apr "
-                "composites, 2019 vs 2021. Requests outside the extent or the "
-                "Jan-Apr window are refused. One model tile is 2.56 km "
-                "(256 px x 10 m); AOIs smaller than a tile are refused.",
+        "note": f"The served model was trained on Western Ghats moist forest, "
+                f"Jan-Apr composites, {yrs}. Requests outside the extent or the "
+                f"Jan-Apr window are refused. One model tile is 2.56 km "
+                f"(256 px x 10 m); AOIs smaller than a tile are refused.",
     }
 
 

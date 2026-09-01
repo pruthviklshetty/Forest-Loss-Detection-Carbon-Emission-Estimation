@@ -8,9 +8,11 @@ import JobProgress from './components/JobProgress.jsx'
 import Results from './components/Results.jsx'
 import ModelCard from './components/ModelCard.jsx'
 
+// Pre-load placeholder only; replaced on mount with the served model's training
+// window from GET /domain.
 const DEFAULT_WINDOWS = {
-  window_t: ['2019-01-01', '2019-04-15'],
-  window_t1: ['2021-01-01', '2021-04-15'],
+  window_t: ['2021-01-01', '2021-04-15'],
+  window_t1: ['2023-01-01', '2023-04-15'],
 }
 
 export default function App() {

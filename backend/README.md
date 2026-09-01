@@ -1,7 +1,9 @@
 # Live forest-loss inference service (Phase 9 backend)
 
-FastAPI service that serves the Phase 8 carry-forward checkpoint
-(`results/checkpoints/p8_pooled_unet_s44_best.pt`). A request selects an area of
+FastAPI service that serves a pooled multi-region carry-forward checkpoint -
+by default the 2021 -> 2023 model (`results/checkpoints/p10_pooled_unet_s43_best.pt`);
+set `SERVE_CHECKPOINT_STEM=p8_pooled_unet_s44` for the 2019 -> 2021 model. A
+request selects an area of
 interest three ways - a **centre point + radius** (primary), a **preset region**,
 or a raw **bounding box** (advanced/fallback) - plus two January-April date
 windows; the backend pulls the two Sentinel-2 composites from Earth Engine, runs
@@ -113,7 +115,7 @@ uvicorn serve.main:app --reload --port 8000
 |---|---|---|
 | `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key (`GEE_KEY_PATH` also accepted) |
 | `EE_PROJECT` | key `project_id` / region.yaml | Earth Engine cloud project |
-| `SERVE_CHECKPOINT_STEM` | `p8_pooled_unet_s44` | which trained model to serve: `p8_pooled_unet_s44` = 2019→2021 (paper basis, default), `p10_pooled_unet_s43` = 2021→2023. The results page states the training window either way. |
+| `SERVE_CHECKPOINT_STEM` | `p10_pooled_unet_s43` | which trained model to serve: `p10_pooled_unet_s43` = 2021→2023 (more recent data, default), `p8_pooled_unet_s44` = 2019→2021 (paper basis). The results page, model card and `/domain` state the served model's training window; leave-one-region-out was only measured for 2019→2021 and is carried with that label. |
 | `SERVE_MAX_AREA_KM2` | `900` | raw-bbox path: reject areas larger than this |
 | `SERVE_MAX_RADIUS_KM` | `20` | point path: max radius |
 | `SERVE_SMALL_AREA_KM2` | `25` | flag results below this with the low-signal caveat |

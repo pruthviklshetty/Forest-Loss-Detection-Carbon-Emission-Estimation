@@ -62,7 +62,7 @@ results/figures/    input / ground-truth / prediction triptychs
 results/carbon_validation/  estimated vs. published CO₂ comparison
 configs/            YAML configs per experiment
 frontend/           static results dashboard (Vite + React, reads results/*.json)
-backend/            Phase 9 live inference service (FastAPI, serves the Phase 8 checkpoint)
+backend/            Phase 9 live inference service (FastAPI; serves the Phase 10 checkpoint by default)
 webapp/             Phase 9 live inference UI (Vite + React, talks to backend/)
 ```
 
@@ -89,11 +89,13 @@ history (`c9947eb`, `82f6948`).
 
 ## Live inference app (Phase 9)
 
-`backend/` is a FastAPI service that serves the Phase 8 carry-forward checkpoint:
-a request names a Western Ghats region (or a custom bbox inside the domain
-extent) and two January–April date windows; the backend pulls the Sentinel-2
-composites from Earth Engine, runs the tiled model, and returns the loss mask,
-cleared hectares and committed aboveground CO₂. `webapp/` is the Vite + React UI
+`backend/` is a FastAPI service that serves a pooled multi-region carry-forward
+checkpoint (default: the Phase 10 2021→2023 model; `SERVE_CHECKPOINT_STEM`
+switches to the Phase 8 2019→2021 one). A request selects an area — a centre
+point + radius, a preset region, or a custom bbox inside the domain extent —
+and two January–April date windows; the backend pulls the Sentinel-2 composites
+from Earth Engine, runs the tiled model, and returns the loss mask, cleared
+hectares and committed aboveground CO₂. `webapp/` is the Vite + React UI
 that drives it. The model domain (Western Ghats moist forest, Jan–Apr, change
 between two increasing years) is enforced server-side — out-of-domain requests
 are refused, not warned. Earth Engine auth is a **service-account JSON key** from

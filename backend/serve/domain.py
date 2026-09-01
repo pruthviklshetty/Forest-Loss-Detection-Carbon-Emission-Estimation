@@ -70,9 +70,9 @@ def domain_extent() -> list[float]:
     return [float(x) for x in _cfg()["domain_extent_wsen"]]
 
 
-def training_windows() -> dict:
-    tw = _cfg()["time_windows"]
-    return {"T": dict(tw["T"]), "T_plus_1": dict(tw["T_plus_1"])}
+# The training window shown to the user comes from the served checkpoint
+# (config.TRAINING_WINDOW, surfaced by main._served_training_windows), not from
+# configs/region.yaml - so it stays correct whichever period's model is served.
 
 
 def preset_regions() -> list[dict]:
