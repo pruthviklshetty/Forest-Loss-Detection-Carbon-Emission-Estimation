@@ -135,7 +135,8 @@ uvicorn serve.main:app --reload --port 8000
 | `SERVE_NOMINATIM_URL` | OSM public | geocoding endpoint |
 | `SERVE_GEOCODE_UA` | app string | User-Agent sent to Nominatim (set a contact) |
 | `SERVE_GEOCODE_MIN_INTERVAL_S` | `1.1` | min seconds between Nominatim calls |
-| `SERVE_JOBS_DIR` | `backend/_jobs` | per-job scratch + served masks |
+| `SERVE_JOBS_DIR` | `backend/_jobs` | per-job scratch + served masks (set to a writable path on ephemeral hosts) |
+| `SERVE_MAX_RETAINED_JOBS` | `20` | keep only the newest N job dirs; older ones (and their `mask.png`) are deleted after each job finishes |
 
 ## API
 
@@ -159,13 +160,41 @@ frontend polls `/jobs/{id}` every 2 s. For quick iteration use a sub-bbox.
 
 ## Deploying to Render
 
-The `torch` (CPU) + `rasterio` + `earthengine-api` stack needs well over Render's
-512 MB free tier; use at least a 2 GB instance, or lower `SERVE_MAX_AREA_KM2` so
-each job's raster stays small.
+`render.yaml` at the repo root is a Blueprint defining both services
+(`forestloss-backend` Web Service + `forestloss-frontend` Static Site). Import
+the repo as a Blueprint, then set the three `sync: false` vars in the dashboard:
 
-- **Build:** `pip install -r requirements.txt -r backend/requirements.txt`
-- **Start:** `uvicorn serve.main:app --host 0.0.0.0 --port $PORT` (working dir `backend/`)
-- **Env:** `GEE_KEY_JSON` = the key JSON contents; `ALLOWED_ORIGINS` = the
-  deployed frontend URL.
-- Install `torch` from the CPU wheel index to keep the image small:
-  `pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu`.
+| service | var | value |
+|---|---|---|
+| backend | `GEE_KEY_JSON` | the EE service-account key JSON **contents** (one line) |
+| backend | `ALLOWED_ORIGINS` | `https://forestloss-frontend.onrender.com` |
+| frontend | `VITE_API_URL` | `https://forestloss-backend.onrender.com` (then redeploy the static site) |
+
+Backend service details (also in `render.yaml`):
+
+- **Runtime:** Python 3.11 (`PYTHON_VERSION=3.11.9`).
+- **Build:** CPU-only torch first, then the pinned deps —
+  `pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 torchvision==0.20.1 && pip install -r requirements.txt -r backend/requirements.txt`.
+  (PyPI's default `torch` wheel is the ~2.5 GB CUDA build; the CPU index avoids it.)
+- **Start:** `uvicorn serve.main:app --host 0.0.0.0 --port $PORT --app-dir backend`.
+- **Health check:** `/health`.
+- **Job scratch:** `SERVE_JOBS_DIR=/tmp/forestloss_jobs` (ephemeral, per-job dirs
+  removed as results serialize — see below).
+
+### Memory (measured locally)
+
+`import torch` + the loaded model is a ~0.56 GB floor; a single job's peak
+resident set is:
+
+| AOI | peak RSS |
+|---|---|
+| ~40 km² (smallest useful) | ~1.06 GB |
+| ~170 km² | ~1.10 GB |
+| ~440 km² | ~1.24 GB |
+| ~850 km² (full preset) | ~1.7 GB |
+
+**Render's 512 MB Free/Starter tier cannot run this at any area cap** — the
+torch + model floor alone is over it, and the smallest job still peaks near
+1 GB. Use **`plan: standard` (2 GB)**, which fits a full preset with
+`SERVE_MAX_AREA_KM2=900`. There is no intermediate Render tier, so "cap the
+area to fit 512 MB" is not an option here.

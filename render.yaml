@@ -1,0 +1,60 @@
+# Render Blueprint - two services deployed from this repo.
+#
+#   forestloss-backend   FastAPI live-inference Web Service (Python 3.11, torch CPU)
+#   forestloss-frontend  Vite build served as a Static Site
+#
+# The served p10 checkpoint is committed (a .gitignore exception), so it is in
+# the build clone; every other artifact the model card reads is tracked JSON.
+#
+# Three env vars are `sync: false` (set in the Render dashboard after the first
+# deploy - the two URLs are chicken-and-egg):
+#   backend   GEE_KEY_JSON     = the EE service-account key JSON *contents*
+#   backend   ALLOWED_ORIGINS  = https://forestloss-frontend.onrender.com
+#   frontend  VITE_API_URL     = https://forestloss-backend.onrender.com   (then redeploy)
+#
+# MEMORY: measured peak RSS of one job locally is ~1.06 GB for a small AOI and
+# ~1.7 GB for a full ~850 km2 preset; idle-after-model-load is ~0.56 GB. The
+# 512 MB Free/Starter tier cannot run this at any area cap (the torch + model
+# floor alone exceeds it). `plan: standard` (2 GB) fits everything with the
+# 900 km2 cap. See backend/README.md "Deploying to Render".
+
+services:
+  - type: web
+    name: forestloss-backend
+    runtime: python
+    plan: standard
+    rootDir: .
+    buildCommand: >-
+      pip install --index-url https://download.pytorch.org/whl/cpu
+      torch==2.5.1 torchvision==0.20.1 &&
+      pip install -r requirements.txt -r backend/requirements.txt
+    startCommand: uvicorn serve.main:app --host 0.0.0.0 --port $PORT --app-dir backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: GEE_KEY_JSON
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SERVE_MAX_AREA_KM2
+        value: "900"
+      - key: SERVE_JOBS_DIR
+        value: /tmp/forestloss_jobs
+      - key: OMP_NUM_THREADS
+        value: "2"
+
+  - type: static
+    name: forestloss-frontend
+    rootDir: webapp
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -65,8 +65,11 @@ PHASE8_SEED_RUNS = SEED_RUNS
 AREA_SUMMARY = REPO / "results" / "deforestation" / f"{CHECKPOINT_STEM}_area_summary.json"
 CARBON_ESTIMATES = _CARBON_DIR / "carbon_estimates.json"
 
-# Per-job scratch (masks served from here; cleaned on process restart).
+# Per-job scratch (masks served from here). Root is configurable for ephemeral
+# / read-only-repo deploys; per-job dirs are pruned to the newest N once a job
+# finishes so a long-running instance does not fill the disk.
 JOBS_DIR = pathlib.Path(os.environ.get("SERVE_JOBS_DIR", REPO / "backend" / "_jobs"))
+MAX_RETAINED_JOBS = int(os.environ.get("SERVE_MAX_RETAINED_JOBS", "20"))
 
 # --- Earth Engine (service account only; NEVER earthengine authenticate) ---
 # Resolution order (serve.eepull.init_ee):

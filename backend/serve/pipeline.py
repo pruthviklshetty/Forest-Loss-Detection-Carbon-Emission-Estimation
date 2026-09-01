@@ -75,6 +75,14 @@ def run_pipeline(job, update) -> dict:
 
     _render_mask_png(pred, jd / "mask.png")
 
+    # the composites are large (~50-170 MB) and not needed once the mask is
+    # rendered; only mask.png is served afterwards. Drop them now.
+    for name in ("s2_T.tif", "s2_T1.tif"):
+        try:
+            (jd / name).unlink()
+        except OSError:
+            pass
+
     cloud = {
         "window_t": {
             "dates": wt, "n_scenes": prov_t["n_scenes"],

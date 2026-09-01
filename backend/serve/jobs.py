@@ -15,7 +15,7 @@ import time
 import traceback
 import uuid
 
-from .config import JOB_TIMEOUT_S, JOBS_DIR
+from .config import JOB_TIMEOUT_S, JOBS_DIR, MAX_RETAINED_JOBS
 
 STATUSES = ("queued", "fetching", "inferring", "estimating", "done", "failed")
 
@@ -108,6 +108,21 @@ class JobStore:
             traceback.print_exc()
         finally:
             job.finished_utc = time.time()
+            _prune_job_dirs()
 
     def cleanup(self, job_id: str) -> None:
         shutil.rmtree(JOBS_DIR / job_id, ignore_errors=True)
+
+
+def _prune_job_dirs() -> None:
+    """Keep only the newest MAX_RETAINED_JOBS per-job directories on disk.
+    mask.png for older jobs stops being served (they 404), which is fine."""
+    try:
+        dirs = [d for d in JOBS_DIR.iterdir() if d.is_dir()]
+    except OSError:
+        return
+    if len(dirs) <= MAX_RETAINED_JOBS:
+        return
+    dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+    for d in dirs[MAX_RETAINED_JOBS:]:
+        shutil.rmtree(d, ignore_errors=True)
