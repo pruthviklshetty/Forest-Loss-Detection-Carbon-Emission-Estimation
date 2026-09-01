@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -25,11 +25,40 @@ const finite = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
 
 export default function ModelCard({ card, forResult, metricCase }) {
   // Native <details> hides its body with display:none when closed. Recharts'
-  // ResponsiveContainer measures its container on mount; measuring a 0x0
-  // hidden element degenerates the axis scale into a bogus huge tick. Only
-  // mount the chart once the card is actually open, so it always measures a
-  // visible container.
+  // ResponsiveContainer measures its container synchronously on mount; if that
+  // happens before the browser has finished laying out the just-opened
+  // <details> (the toggle click and React's re-render can outrace layout), it
+  // measures 0x0 and recharts locks in a degenerate axis scale (a huge bogus
+  // tick) that a later resize does not reliably correct. So: track `open` for
+  // the UI, but only mount the chart on `chartReady`, set one paint later via
+  // double requestAnimationFrame (the standard "wait for layout" technique) -
+  // and remount it fresh (via `chartKey`) every time, so no run can inherit a
+  // previous bad measurement.
   const [open, setOpen] = useState(false)
+  const [chartReady, setChartReady] = useState(false)
+  const [chartKey, setChartKey] = useState(0)
+  const rafIds = useRef([])
+
+  useEffect(() => () => rafIds.current.forEach((id) => cancelAnimationFrame(id)), [])
+
+  const handleToggle = (e) => {
+    const isOpen = e.currentTarget.open
+    setOpen(isOpen)
+    rafIds.current.forEach((id) => cancelAnimationFrame(id))
+    rafIds.current = []
+    if (isOpen) {
+      const id1 = requestAnimationFrame(() => {
+        const id2 = requestAnimationFrame(() => {
+          setChartKey((k) => k + 1)
+          setChartReady(true)
+        })
+        rafIds.current = [id2]
+      })
+      rafIds.current = [id1]
+    } else {
+      setChartReady(false)
+    }
+  }
 
   if (!card) return null
   const d = card.in_domain || {}
@@ -68,7 +97,7 @@ export default function ModelCard({ card, forResult, metricCase }) {
   const yMax = Math.min(Math.max(...yCandidates, 0.05) * 1.15, 1)
 
   return (
-    <details className="card modelcard" onToggle={(e) => setOpen(e.currentTarget.open)}>
+    <details className="card modelcard" onToggle={handleToggle}>
       <summary className="modelcard__summary">
         <span className="modelcard__toggle">Model performance details</span>
         <span className="modelcard__oneline">
@@ -134,12 +163,14 @@ export default function ModelCard({ card, forResult, metricCase }) {
           ) : (
             <p>{t.note}</p>
           )}
-          {folds.length > 0 && !open && (
-            <p className="muted small">(chart shown once this card is expanded)</p>
+          {folds.length > 0 && !chartReady && (
+            <p className="muted small">
+              {open ? '(rendering chart…)' : '(chart shown once this card is expanded)'}
+            </p>
           )}
-          {folds.length > 0 && open && (
+          {folds.length > 0 && chartReady && (
             <div className="chart">
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer key={chartKey} width="100%" height={180} minWidth={220} debounce={1}>
                 <BarChart data={folds} margin={{ top: 12, right: 8, bottom: 4, left: 0 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} domain={[0, yMax]} allowDataOverflow />
