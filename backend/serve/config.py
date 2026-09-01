@@ -31,7 +31,10 @@ JOBS_DIR = pathlib.Path(os.environ.get("SERVE_JOBS_DIR", REPO / "backend" / "_jo
 
 # --- Earth Engine (service account only; NEVER earthengine authenticate) ---
 # Path to the service-account JSON key. Must point at a git-ignored file.
-EE_KEY_PATH = os.environ.get("EE_SERVICE_ACCOUNT_KEY")  # required at runtime
+# `EE_SERVICE_ACCOUNT_KEY` is the documented name; `GEE_KEY_PATH` is also
+# accepted for convenience.
+EE_KEY_PATH = (os.environ.get("EE_SERVICE_ACCOUNT_KEY")
+               or os.environ.get("GEE_KEY_PATH"))  # required at runtime
 # Optional explicit project override; otherwise the key's project_id / the
 # region.yaml project is used.
 EE_PROJECT = os.environ.get("EE_PROJECT")

@@ -71,7 +71,7 @@ uvicorn serve.main:app --reload --port 8000
 
 | var | default | meaning |
 |---|---|---|
-| `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key |
+| `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key (`GEE_KEY_PATH` also accepted) |
 | `EE_PROJECT` | key `project_id` / region.yaml | Earth Engine cloud project |
 | `SERVE_MAX_AREA_KM2` | `900` | reject requests larger than this (fits a full preset region) |
 | `SERVE_JOB_TIMEOUT_S` | `1800` | fail a job that runs longer |
