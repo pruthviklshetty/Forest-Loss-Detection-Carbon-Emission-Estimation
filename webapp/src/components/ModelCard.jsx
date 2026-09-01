@@ -142,14 +142,7 @@ export default function ModelCard({ card, forResult, metricCase }) {
         </table>
         <p className="muted small">{d.note}</p>
 
-        <Notice
-          kind="warn"
-          title={
-            loroMeasured
-              ? 'Performance outside the training set is lower'
-              : 'Transfer was not re-measured for this model'
-          }
-        >
+        <Notice kind="warn" title="Performance outside the training set is lower">
           {loroMeasured ? (
             <p>
               Leave-one-region-out (train on 3 Western Ghats regions, test on the
