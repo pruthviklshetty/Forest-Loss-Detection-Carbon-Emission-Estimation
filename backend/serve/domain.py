@@ -20,7 +20,11 @@ import math
 
 import yaml
 
-from .config import MAX_AREA_KM2, REGION_CFG
+from .config import (MAX_AREA_KM2, MAX_RADIUS_KM, REGION_CFG, SMALL_AREA_KM2,
+                     TILE_KM)
+
+_KM_PER_DEG_LAT = 110.574
+_KM_PER_DEG_LON_EQ = 111.320
 
 # --- extra presets inside the domain extent, NOT in the training set ----------
 # Bboxes are Western Ghats moist-forest blocks within domain_extent_wsen; their
@@ -109,9 +113,81 @@ def preset_by_id(rid: str) -> dict | None:
 def bbox_area_km2(wsen) -> float:
     w, s, e, n = (float(x) for x in wsen)
     mean_lat = math.radians((s + n) / 2.0)
-    km_per_deg_lat = 110.574
-    km_per_deg_lon = 111.320 * math.cos(mean_lat)
-    return abs((e - w) * km_per_deg_lon) * abs((n - s) * km_per_deg_lat)
+    km_per_deg_lon = _KM_PER_DEG_LON_EQ * math.cos(mean_lat)
+    return abs((e - w) * km_per_deg_lon) * abs((n - s) * _KM_PER_DEG_LAT)
+
+
+def bbox_sides_km(wsen) -> tuple[float, float]:
+    """(west-east span, south-north span) in km."""
+    w, s, e, n = (float(x) for x in wsen)
+    mean_lat = math.radians((s + n) / 2.0)
+    return (abs(e - w) * _KM_PER_DEG_LON_EQ * math.cos(mean_lat),
+            abs(n - s) * _KM_PER_DEG_LAT)
+
+
+def training_regions() -> list[dict]:
+    cfg = _cfg()
+    out = []
+    for r in cfg["regions"]:
+        out.append({"id": r["id"], "bbox_wsen": [float(x) for x in r["bbox"]["wsen"]]})
+    return out
+
+
+def metric_case_for_bbox(wsen) -> tuple[str, str | None]:
+    """'pooled' + region id if the whole bbox sits inside one training region,
+    else 'loro' (the model is in its leave-one-region-out regime)."""
+    w, s, e, n = (float(x) for x in wsen)
+    for tr in training_regions():
+        tw, ts, te, tn = tr["bbox_wsen"]
+        if w >= tw and s >= ts and e <= te and n <= tn:
+            return "pooled", tr["id"]
+    return "loro", None
+
+
+def derive_bbox_from_point(lat: float, lon: float, radius_km: float) -> dict:
+    """Square bbox centred on (lat, lon), side = 2*radius_km snapped UP to a
+    whole number of 2.56 km model tiles. Refuses a radius that would give an AOI
+    smaller than one tile - no silent padding of a too-small request."""
+    try:
+        lat = float(lat)
+        lon = float(lon)
+        radius_km = float(radius_km)
+    except (TypeError, ValueError) as exc:
+        raise DomainError(f"center/radius not numeric: {exc}") from exc
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise DomainError(f"center [{lat}, {lon}] is not a valid lat/lon.")
+    if radius_km <= 0:
+        raise DomainError("radius_km must be positive.")
+    if radius_km > MAX_RADIUS_KM:
+        raise DomainError(
+            f"radius {radius_km:g} km exceeds the {MAX_RADIUS_KM:g} km cap. "
+            f"Larger areas mean long Earth Engine pulls with no benefit for a "
+            f"local query; use a preset region for a whole district.")
+
+    want_side_km = 2.0 * radius_km
+    if want_side_km < TILE_KM - 1e-9:
+        raise DomainError(
+            f"a {radius_km:g} km radius is a {want_side_km:.2f} km square, "
+            f"smaller than one model tile ({TILE_KM:.2f} km). The model "
+            f"processes 2.56 km tiles from 10 m Sentinel-2 imagery and the "
+            f"Hansen GFC labels are 30 m, so a smaller area cannot produce a "
+            f"meaningful result. Choose a radius of at least "
+            f"{TILE_KM / 2:.2f} km.")
+
+    n_tiles = max(1, math.ceil(want_side_km / TILE_KM - 1e-9))
+    side_km = n_tiles * TILE_KM
+    half_lat_deg = (side_km / 2.0) / _KM_PER_DEG_LAT
+    half_lon_deg = (side_km / 2.0) / (_KM_PER_DEG_LON_EQ * math.cos(math.radians(lat)))
+    wsen = [lon - half_lon_deg, lat - half_lat_deg,
+            lon + half_lon_deg, lat + half_lat_deg]
+    return {
+        "bbox_wsen": [round(x, 6) for x in wsen],
+        "center": [lat, lon],
+        "radius_km": radius_km,
+        "requested_side_km": round(want_side_km, 3),
+        "derived_side_km": round(side_km, 3),
+        "n_tiles_per_side": n_tiles,
+    }
 
 
 def _require_inside(wsen, ext) -> None:
@@ -126,14 +202,22 @@ def _require_inside(wsen, ext) -> None:
         raise DomainError(f"bbox {wsen} is degenerate (need W<E and S<N).")
 
 
-def validate_bbox(wsen) -> list[float]:
+def validate_bbox(wsen, *, enforce_area_cap: bool = True) -> list[float]:
     ext = domain_extent()
     _require_inside(wsen, ext)
-    area = bbox_area_km2(wsen)
-    if area > MAX_AREA_KM2:
+    sx, sy = bbox_sides_km(wsen)
+    if min(sx, sy) < TILE_KM - 1e-6:
         raise DomainError(
-            f"requested area {area:.0f} km2 exceeds the {MAX_AREA_KM2:.0f} km2 "
-            f"cap. Split the area into smaller requests.")
+            f"bbox is {sx:.2f} x {sy:.2f} km; the smaller side is below one "
+            f"model tile ({TILE_KM:.2f} km). The model processes 2.56 km tiles "
+            f"from 10 m Sentinel-2 imagery and the Hansen GFC labels are 30 m, "
+            f"so a smaller area cannot produce a meaningful result.")
+    if enforce_area_cap:
+        area = bbox_area_km2(wsen)
+        if area > MAX_AREA_KM2:
+            raise DomainError(
+                f"requested area {area:.0f} km2 exceeds the {MAX_AREA_KM2:.0f} "
+                f"km2 cap. Split the area into smaller requests.")
     return [float(x) for x in wsen]
 
 
@@ -173,25 +257,52 @@ def validate_windows(window_t, window_t1) -> dict:
     return {"window_t": list(t), "window_t1": list(t1)}
 
 
-def resolve_request(region_id: str | None, bbox_wsen, window_t, window_t1) -> dict:
-    """Return a normalised, in-domain job spec or raise DomainError."""
+def resolve_request(region_id: str | None, bbox_wsen, window_t, window_t1,
+                    center=None, radius_km=None) -> dict:
+    """Return a normalised, in-domain job spec or raise DomainError.
+
+    Selection priority: preset region_id -> point (center + radius_km) ->
+    raw bbox_wsen (advanced/fallback).
+    """
+    derived = None
     if region_id:
         preset = preset_by_id(region_id)
         if preset is None:
             raise DomainError(f"unknown preset region '{region_id}'.")
         bbox = preset["bbox_wsen"]
         src = {"region_id": region_id, "region_name": preset["name"],
-               "in_training_set": preset["in_training_set"]}
+               "in_training_set": preset["in_training_set"],
+               "selection": "preset"}
+    elif center is not None and radius_km is not None:
+        derived = derive_bbox_from_point(center[0], center[1], radius_km)
+        bbox = validate_bbox(derived["bbox_wsen"], enforce_area_cap=False)
+        src = {"region_id": None, "region_name": None, "in_training_set": False,
+               "selection": "point_radius"}
     elif bbox_wsen is not None:
         bbox = validate_bbox(bbox_wsen)
-        src = {"region_id": None, "region_name": None, "in_training_set": False}
+        src = {"region_id": None, "region_name": None, "in_training_set": False,
+               "selection": "bbox"}
     else:
-        raise DomainError("provide either region_id or bbox_wsen.")
+        raise DomainError("provide region_id, or center + radius_km, or bbox_wsen.")
 
     windows = validate_windows(window_t, window_t1)
+
+    if src["selection"] == "preset":
+        case, case_region = ("pooled", region_id) if src["in_training_set"] \
+            else ("loro", None)
+    else:
+        case, case_region = metric_case_for_bbox(bbox)
+        src["in_training_set"] = case == "pooled"
+
+    area_km2 = round(bbox_area_km2(bbox), 2)
     return {
         "bbox_wsen": [float(x) for x in bbox],
-        "area_km2": round(bbox_area_km2(bbox), 2),
+        "area_km2": area_km2,
+        "small_area": area_km2 < SMALL_AREA_KM2,
+        "small_area_threshold_km2": SMALL_AREA_KM2,
+        "metric_case": case,
+        "metric_case_region": case_region,
+        "derived": derived,
         **windows,
         **src,
     }

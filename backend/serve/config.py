@@ -44,7 +44,7 @@ EE_PROJECT = os.environ.get("EE_PROJECT")
 # plus tiled inference run ~15-25 min. The timeout is generous so presets work;
 # a sub-bbox of ~100-200 km2 finishes in 2-4 min and is what to use for quick
 # iteration.
-MAX_AREA_KM2 = float(os.environ.get("SERVE_MAX_AREA_KM2", "900"))   # ~one training block
+MAX_AREA_KM2 = float(os.environ.get("SERVE_MAX_AREA_KM2", "900"))   # raw-bbox path only
 JOB_TIMEOUT_S = float(os.environ.get("SERVE_JOB_TIMEOUT_S", "1800"))
 # Composite cloud/no-data cover above this (either date) raises a visible flag.
 CLOUD_FLAG_PCT = float(os.environ.get("SERVE_CLOUD_FLAG_PCT", "35"))
@@ -54,3 +54,23 @@ MIN_SCENES = int(os.environ.get("SERVE_MIN_SCENES", "8"))
 # Tiling - identical to src/change_detection/infer_region.py.
 TILE_PX = 256
 TILE_STRIDE = 128
+
+# --- Point-and-radius AOI ---
+# One model tile is 256 px x 10 m = 2.56 km on a side; Hansen GFC labels are
+# 30 m. An AOI smaller than one tile carries no meaningful signal and is
+# refused. Derived bboxes are snapped to a whole number of tiles.
+TILE_KM = TILE_PX * 10 / 1000.0            # 2.56
+MAX_RADIUS_KM = float(os.environ.get("SERVE_MAX_RADIUS_KM", "20"))
+# Below this AOI size the expected true-loss pixel count at ~0.3% prevalence is
+# very low; results carry a "provisional / zero is expected" caveat.
+SMALL_AREA_KM2 = float(os.environ.get("SERVE_SMALL_AREA_KM2", "25"))
+
+# --- Geocoding (Nominatim / OpenStreetMap, no API key) ---
+NOMINATIM_URL = os.environ.get("SERVE_NOMINATIM_URL",
+                               "https://nominatim.openstreetmap.org/search")
+# Nominatim's usage policy requires an identifying User-Agent.
+GEOCODE_USER_AGENT = os.environ.get(
+    "SERVE_GEOCODE_UA",
+    "forest-loss-live-app/0.9 (Western Ghats forest-loss demo)")
+GEOCODE_MIN_INTERVAL_S = float(os.environ.get("SERVE_GEOCODE_MIN_INTERVAL_S", "1.1"))
+GEOCODE_CACHE_MAX = 512
