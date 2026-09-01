@@ -16,6 +16,7 @@ explanation - they are not dismissible warnings.
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 from fastapi import FastAPI, HTTPException
@@ -44,6 +45,7 @@ app.add_middleware(
 )
 
 store = JobStore()
+_running: set[asyncio.Task] = set()   # keep task refs so they are not GC'd
 
 
 class JobRequest(BaseModel):
@@ -98,8 +100,9 @@ async def create_job(req: JobRequest) -> dict:
         raise HTTPException(status_code=422, detail={"error": "out_of_domain",
                                                     "message": str(exc)})
     job = await store.create(spec)
-    import asyncio
-    asyncio.create_task(store.run(job.id, run_pipeline))
+    task = asyncio.create_task(store.run(job.id, run_pipeline))
+    _running.add(task)
+    task.add_done_callback(_running.discard)
     return {"id": job.id, "status": job.status, "spec": spec}
 
 

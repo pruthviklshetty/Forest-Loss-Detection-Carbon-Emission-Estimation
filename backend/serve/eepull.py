@@ -43,7 +43,7 @@ def init_ee() -> str:
     """Initialise Earth Engine with a service account. Returns the project id."""
     global _INITED
     if _INITED:
-        return ee.data._cloud_api_user_project or "(initialised)"
+        return getattr(ee.data, "_cloud_api_user_project", None) or "(initialised)"
 
     cfg = _cfg()
     key_path = EE_KEY_PATH or (cfg.get("earth_engine") or {}).get("service_account_key")
