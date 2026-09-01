@@ -54,7 +54,10 @@ def _year_t_ndvi_over_forest() -> np.ndarray:
     with rasterio.open(RAW / "s2_T.tif") as s:
         a = s.read()
     red, nir = a[1], a[2]
-    ndvi = (nir - red) / (nir + red + 1e-6)
+    # nodata pixels carry NaN; the `np.isfinite(ndvi)` mask below drops them, so
+    # the invalid-subtract warning is noise.
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ndvi = (nir - red) / (nir + red + 1e-6)
     with rasterio.open(MASKS / "forest2000.tif") as s:
         forest = s.read(1).astype(bool)
     with rasterio.open(MASKS / "valid_mask.tif") as s:

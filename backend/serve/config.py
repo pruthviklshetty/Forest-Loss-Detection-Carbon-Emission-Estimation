@@ -64,6 +64,10 @@ SERVED_PERIOD = _PERIOD
 PHASE8_SEED_RUNS = SEED_RUNS
 AREA_SUMMARY = REPO / "results" / "deforestation" / f"{CHECKPOINT_STEM}_area_summary.json"
 CARBON_ESTIMATES = _CARBON_DIR / "carbon_estimates.json"
+# Pre-fitted NDVI->carbon regression coefficients (committed). The backend loads
+# these rather than re-fitting - the fit needs data/raw/s2_T.tif, which is
+# gitignored and absent from a git-based deploy.
+REGRESSION_COEFS = _CARBON_DIR / "regression_coefs.json"
 
 # Per-job scratch (masks served from here). Root is configurable for ephemeral
 # / read-only-repo deploys; per-job dirs are pruned to the newest N once a job

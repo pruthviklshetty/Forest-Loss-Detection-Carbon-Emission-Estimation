@@ -15,7 +15,8 @@ import numpy as np
 import rasterio
 import torch
 
-from .config import CHECKPOINT, EVAL_JSON, REPO, TILE_PX, TILE_STRIDE
+from .config import (CHECKPOINT, EVAL_JSON, REGRESSION_COEFS, REPO, TILE_PX,
+                     TILE_STRIDE)
 
 from src.models.unet import build_model  # noqa: E402
 from src.carbon.ndvi import compute_ndvi, three_bin_carbon_density  # noqa: E402
@@ -109,9 +110,16 @@ _CARBON_COEFS = None
 
 
 def _carbon_coefs():
+    """The NDVI->carbon regression coefficients. Prefer the committed
+    ``regression_coefs.json`` for the served period; fitting from scratch needs
+    ``data/raw/s2_T.tif`` (gitignored, absent from a git-based deploy) and is a
+    local-only fallback that yields byte-identical coefficients."""
     global _CARBON_COEFS
     if _CARBON_COEFS is None:
-        _CARBON_COEFS = fit(build_calibration())
+        if REGRESSION_COEFS.is_file():
+            _CARBON_COEFS = json.loads(REGRESSION_COEFS.read_text(encoding="utf-8"))
+        else:
+            _CARBON_COEFS = fit(build_calibration())
     return _CARBON_COEFS
 
 

@@ -108,10 +108,26 @@ class JobStore:
             traceback.print_exc()
         finally:
             job.finished_utc = time.time()
+            # only NOW, once run_pipeline has returned and job.result is set (or
+            # the job has failed): drop this job's large composites, then prune
+            # old job dirs. Never touched while the pipeline is running.
+            _shrink_job_dir(job_id)
             _prune_job_dirs()
 
     def cleanup(self, job_id: str) -> None:
         shutil.rmtree(JOBS_DIR / job_id, ignore_errors=True)
+
+
+def _shrink_job_dir(job_id: str) -> None:
+    """Delete the large Sentinel-2 composites from a finished job's directory.
+    They are not needed after inference / mask rendering; only mask.png is
+    served afterwards."""
+    d = JOBS_DIR / job_id
+    for name in ("s2_T.tif", "s2_T1.tif"):
+        try:
+            (d / name).unlink()
+        except OSError:
+            pass
 
 
 def _prune_job_dirs() -> None:

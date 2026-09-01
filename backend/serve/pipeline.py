@@ -7,7 +7,6 @@ message)`` pushes state back to the Job so ``GET /jobs/{id}`` can report it.
 from __future__ import annotations
 
 import numpy as np
-import rasterio
 from PIL import Image
 
 from .config import CLOUD_FLAG_PCT, JOBS_DIR, MIN_SCENES
@@ -75,14 +74,6 @@ def run_pipeline(job, update) -> dict:
 
     _render_mask_png(pred, jd / "mask.png")
 
-    # the composites are large (~50-170 MB) and not needed once the mask is
-    # rendered; only mask.png is served afterwards. Drop them now.
-    for name in ("s2_T.tif", "s2_T1.tif"):
-        try:
-            (jd / name).unlink()
-        except OSError:
-            pass
-
     cloud = {
         "window_t": {
             "dates": wt, "n_scenes": prov_t["n_scenes"],
@@ -104,8 +95,9 @@ def run_pipeline(job, update) -> dict:
     cloud["any_flag"] = any(cloud[w][k] for w in ("window_t", "window_t1")
                             for k in ("high_cloud", "few_scenes"))
 
-    with rasterio.open(jd / "s2_T.tif") as s:
-        px_h, px_w = s.height, s.width
+    # processed raster size, straight from the prediction arrays - no re-open of
+    # the (now possibly cleaned-up) job composites.
+    px_h, px_w = pred["loss"].shape
 
     return {
         "mask_ready": True,

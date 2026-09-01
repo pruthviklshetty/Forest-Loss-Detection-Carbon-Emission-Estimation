@@ -18,7 +18,10 @@ THREE_BIN_VALUES_tC_ha = {"sparse": 100.0, "moderate": 150.0, "dense": 200.0}
 def compute_ndvi(nir: np.ndarray, red: np.ndarray, eps: float = 1e-6) -> np.ndarray:
     nir = nir.astype(np.float32)
     red = red.astype(np.float32)
-    return (nir - red) / (nir + red + eps)
+    # nodata / masked pixels can carry NaN; callers mask on np.isfinite, so the
+    # transient invalid-op warning here is noise.
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return (nir - red) / (nir + red + eps)
 
 
 def three_bin_carbon_density(
