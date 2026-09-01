@@ -37,8 +37,12 @@ EE_KEY_PATH = os.environ.get("EE_SERVICE_ACCOUNT_KEY")  # required at runtime
 EE_PROJECT = os.environ.get("EE_PROJECT")
 
 # --- Guard rails ---
+# A full ~850 km2 preset region is a slow job: two Earth Engine composite pulls
+# plus tiled inference run ~15-25 min. The timeout is generous so presets work;
+# a sub-bbox of ~100-200 km2 finishes in 2-4 min and is what to use for quick
+# iteration.
 MAX_AREA_KM2 = float(os.environ.get("SERVE_MAX_AREA_KM2", "900"))   # ~one training block
-JOB_TIMEOUT_S = float(os.environ.get("SERVE_JOB_TIMEOUT_S", "300"))
+JOB_TIMEOUT_S = float(os.environ.get("SERVE_JOB_TIMEOUT_S", "1800"))
 # Composite cloud/no-data cover above this (either date) raises a visible flag.
 CLOUD_FLAG_PCT = float(os.environ.get("SERVE_CLOUD_FLAG_PCT", "35"))
 # Minimum clear Sentinel-2 scenes per window before the result is flagged thin.

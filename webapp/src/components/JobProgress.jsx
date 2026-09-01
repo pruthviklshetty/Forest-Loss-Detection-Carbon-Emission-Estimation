@@ -48,7 +48,9 @@ export default function JobProgress({ job }) {
       )}
       {job.status !== 'failed' && job.status !== 'done' && (
         <p className="muted small">
-          The Earth Engine pull typically takes 30–90 s; this page polls every 2 s.
+          A small bbox (~100–200 km²) finishes in 2–4 min; a full preset region
+          (~850 km²) is a 15–25 min job — two Earth Engine pulls plus tiled
+          inference. This page polls every 2 s.
         </p>
       )}
     </Card>

@@ -123,7 +123,8 @@ def estimate(pred: dict) -> dict:
     ha_per_px = gsd * gsd / 1e4
 
     green, red, nir = pred["img_t"][0], pred["img_t"][1], pred["img_t"][2]
-    ndvi = compute_ndvi(nir, red)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        ndvi = compute_ndvi(nir, red)
     veg = valid & np.isfinite(ndvi) & (ndvi > 0.3)
     if veg.sum() >= 100:
         lo = float(np.percentile(ndvi[veg], 33.3))

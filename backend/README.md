@@ -73,8 +73,8 @@ uvicorn serve.main:app --reload --port 8000
 |---|---|---|
 | `EE_SERVICE_ACCOUNT_KEY` | – (required) | path to the service-account JSON key |
 | `EE_PROJECT` | key `project_id` / region.yaml | Earth Engine cloud project |
-| `SERVE_MAX_AREA_KM2` | `900` | reject requests larger than this |
-| `SERVE_JOB_TIMEOUT_S` | `300` | fail a job that runs longer |
+| `SERVE_MAX_AREA_KM2` | `900` | reject requests larger than this (fits a full preset region) |
+| `SERVE_JOB_TIMEOUT_S` | `1800` | fail a job that runs longer |
 | `SERVE_CLOUD_FLAG_PCT` | `35` | flag a composite with more cloud/no-data than this |
 | `SERVE_MIN_SCENES` | `8` | flag a window with fewer clear scenes |
 | `SERVE_JOBS_DIR` | `backend/_jobs` | per-job scratch + served masks |
@@ -93,8 +93,10 @@ uvicorn serve.main:app --reload --port 8000
 | GET | `/jobs/{id}/mask.png` | prediction overlay PNG (409 until ready) |
 
 Jobs run one at a time in a worker thread; state is in memory and lost on
-restart (single-instance demo, not a durable queue). A GEE pull is ~30-90 s, so
-the frontend polls `/jobs/{id}`.
+restart (single-instance demo, not a durable queue). Timing measured locally
+(GPU inference): a ~120 km² bbox takes ~3 min end to end (two Earth Engine
+composite pulls dominate); a full ~850 km² preset region is ~15-25 min. The
+frontend polls `/jobs/{id}` every 2 s. For quick iteration use a sub-bbox.
 
 ## Deploying to Render
 
