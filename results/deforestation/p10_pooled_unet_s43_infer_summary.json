@@ -1,0 +1,31 @@
+{
+  "experiment": "p10_pooled_unet_s43",
+  "operating_threshold": 0.64,
+  "stride": 128,
+  "regions": {
+    "wayanad": {
+      "region": "wayanad",
+      "pred_loss_px": 32502,
+      "pred_loss_ha": 325.02,
+      "valid_px": 8457916
+    },
+    "kodagu": {
+      "region": "kodagu",
+      "pred_loss_px": 10629,
+      "pred_loss_ha": 106.29,
+      "valid_px": 8371500
+    },
+    "nilgiris": {
+      "region": "nilgiris",
+      "pred_loss_px": 21068,
+      "pred_loss_ha": 210.68,
+      "valid_px": 8448622
+    },
+    "anamalai": {
+      "region": "anamalai",
+      "pred_loss_px": 9057,
+      "pred_loss_ha": 90.57,
+      "valid_px": 8436999
+    }
+  }
+}

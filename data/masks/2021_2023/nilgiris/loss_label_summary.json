@@ -1,0 +1,54 @@
+{
+  "region_id": "nilgiris",
+  "region_name": "Nilgiris (Ooty), Western Ghats, Tamil Nadu, India",
+  "source_raster": "data\\masks\\2021_2023\\nilgiris\\hansen_gfc_raw.tif",
+  "gee_asset": "UMD/hansen/global_forest_change_2024_v1_12",
+  "canopy_threshold_pct": 30.0,
+  "loss_year_codes": [
+    21,
+    22
+  ],
+  "grid": {
+    "width": 3073,
+    "height": 2785,
+    "crs": "EPSG:32643",
+    "gsd_m": 10
+  },
+  "pixels": {
+    "total": 8558305,
+    "valid_land": 8448622,
+    "valid_land_pct": 98.718,
+    "forest2000": 4016626,
+    "forest2000_pct_of_land": 47.542,
+    "loss_positive": 17211,
+    "loss_positive_pct_of_land": 0.2037,
+    "loss_positive_pct_of_forest2000": 0.4285
+  },
+  "lossyear_histogram_over_land": {
+    "0": 8161292,
+    "1": 1100,
+    "2": 2662,
+    "3": 3251,
+    "4": 12533,
+    "5": 8857,
+    "6": 8237,
+    "7": 23918,
+    "8": 5186,
+    "9": 2071,
+    "11": 8811,
+    "12": 6966,
+    "13": 4845,
+    "14": 11100,
+    "15": 13034,
+    "16": 12137,
+    "17": 7236,
+    "18": 22600,
+    "19": 12689,
+    "20": 13703,
+    "21": 8724,
+    "22": 14257,
+    "23": 40338,
+    "24": 43075
+  },
+  "ha_lost_gfc_reference": 172.11
+}

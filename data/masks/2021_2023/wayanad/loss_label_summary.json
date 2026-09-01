@@ -1,0 +1,55 @@
+{
+  "region_id": "wayanad",
+  "region_name": "Wayanad Plateau, Western Ghats, Kerala, India",
+  "source_raster": "data\\masks\\2021_2023\\wayanad\\hansen_gfc_raw.tif",
+  "gee_asset": "UMD/hansen/global_forest_change_2024_v1_12",
+  "canopy_threshold_pct": 30.0,
+  "loss_year_codes": [
+    21,
+    22
+  ],
+  "grid": {
+    "width": 3064,
+    "height": 2778,
+    "crs": "EPSG:32643",
+    "gsd_m": 10
+  },
+  "pixels": {
+    "total": 8511792,
+    "valid_land": 8457916,
+    "valid_land_pct": 99.367,
+    "forest2000": 6360971,
+    "forest2000_pct_of_land": 75.207,
+    "loss_positive": 20203,
+    "loss_positive_pct_of_land": 0.2389,
+    "loss_positive_pct_of_forest2000": 0.3176
+  },
+  "lossyear_histogram_over_land": {
+    "0": 8141198,
+    "1": 956,
+    "2": 568,
+    "3": 1963,
+    "4": 2208,
+    "5": 3530,
+    "6": 3789,
+    "7": 22543,
+    "8": 7498,
+    "9": 2874,
+    "10": 79,
+    "11": 12395,
+    "12": 9826,
+    "13": 5130,
+    "14": 7558,
+    "15": 2675,
+    "16": 13857,
+    "17": 15141,
+    "18": 20673,
+    "19": 15299,
+    "20": 12558,
+    "21": 9321,
+    "22": 13881,
+    "23": 90859,
+    "24": 41537
+  },
+  "ha_lost_gfc_reference": 202.03
+}

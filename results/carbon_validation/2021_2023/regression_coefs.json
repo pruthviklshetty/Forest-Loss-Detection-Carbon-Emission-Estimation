@@ -1,0 +1,67 @@
+{
+  "calibration_points": [
+    {
+      "class": "dry_open_forest",
+      "ndvi": 0.4462,
+      "agc_MgC_ha": 30.5,
+      "source": "padmakumar2018"
+    },
+    {
+      "class": "degraded_moist_deciduous",
+      "ndvi": 0.5825,
+      "agc_MgC_ha": 75.6,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "moist_deciduous",
+      "ndvi": 0.6665,
+      "agc_MgC_ha": 101.8,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "semi_evergreen",
+      "ndvi": 0.7191,
+      "agc_MgC_ha": 132.5,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "semi_evergreen_dense",
+      "ndvi": 0.7455,
+      "agc_MgC_ha": 171.3,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "evergreen",
+      "ndvi": 0.7752,
+      "agc_MgC_ha": 236.0,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "evergreen_dense",
+      "ndvi": 0.8192,
+      "agc_MgC_ha": 332.9,
+      "source": "kothandaraman2020"
+    },
+    {
+      "class": "evergreen_oldgrowth",
+      "ndvi": 0.8381,
+      "agc_MgC_ha": 408.1,
+      "source": "kothandaraman2020"
+    }
+  ],
+  "n_points": 8,
+  "linear": {
+    "a": 874.1170259696239,
+    "b": -424.95308054124126,
+    "r2": 0.768931743872938,
+    "form": "AGC = a*NDVI + b, clipped at 0"
+  },
+  "exponential": {
+    "a": 6.365757629537672,
+    "b": 0.5100189902533041,
+    "r2": 0.9484637186863452,
+    "form": "AGC = exp(a*NDVI + b)"
+  },
+  "primary": "exponential",
+  "note": "Calibrated against literature-reported regional aboveground carbon densities, NOT pixel-aligned biomass rasters. n is small (8 anchors); r2 describes curve fit, not held-out accuracy."
+}

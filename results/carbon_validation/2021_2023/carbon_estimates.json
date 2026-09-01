@@ -1,0 +1,523 @@
+{
+  "experiment": "p10_pooled_unet_s43",
+  "co2_per_c": 3.6666666666666665,
+  "ha_per_pixel": 0.01,
+  "regions": [
+    "wayanad",
+    "kodagu",
+    "nilgiris",
+    "anamalai"
+  ],
+  "three_bin_note": "per-region NDVI terciles of that region's own Year-T forest composite; assumed scheme, not an IPCC table",
+  "three_bin_values_tC_ha": {
+    "sparse": 100.0,
+    "moderate": 150.0,
+    "dense": 200.0
+  },
+  "regression": {
+    "primary": "exponential",
+    "linear": {
+      "a": 874.1170259696239,
+      "b": -424.95308054124126,
+      "r2": 0.768931743872938,
+      "form": "AGC = a*NDVI + b, clipped at 0"
+    },
+    "exponential": {
+      "a": 6.365757629537672,
+      "b": 0.5100189902533041,
+      "r2": 0.9484637186863452,
+      "form": "AGC = exp(a*NDVI + b)"
+    },
+    "calibration_points": [
+      {
+        "class": "dry_open_forest",
+        "ndvi": 0.4462,
+        "agc_MgC_ha": 30.5,
+        "source": "padmakumar2018"
+      },
+      {
+        "class": "degraded_moist_deciduous",
+        "ndvi": 0.5825,
+        "agc_MgC_ha": 75.6,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "moist_deciduous",
+        "ndvi": 0.6665,
+        "agc_MgC_ha": 101.8,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "semi_evergreen",
+        "ndvi": 0.7191,
+        "agc_MgC_ha": 132.5,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "semi_evergreen_dense",
+        "ndvi": 0.7455,
+        "agc_MgC_ha": 171.3,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen",
+        "ndvi": 0.7752,
+        "agc_MgC_ha": 236.0,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen_dense",
+        "ndvi": 0.8192,
+        "agc_MgC_ha": 332.9,
+        "source": "kothandaraman2020"
+      },
+      {
+        "class": "evergreen_oldgrowth",
+        "ndvi": 0.8381,
+        "agc_MgC_ha": 408.1,
+        "source": "kothandaraman2020"
+      }
+    ],
+    "calibration_note": "Calibrated against literature-reported regional aboveground carbon densities, NOT pixel-aligned biomass rasters. n is small (8 anchors); r2 describes curve fit, not held-out accuracy."
+  },
+  "per_region": {
+    "wayanad": {
+      "ndvi_lo": 0.6669,
+      "ndvi_hi": 0.7456,
+      "predicted_test": {
+        "three_bin_baseline": {
+          "tC": 9059.5,
+          "tCO2": 33218.2,
+          "mean_AGC_tC_ha": 130.6,
+          "n_px": 6936
+        },
+        "regression_linear": {
+          "tC": 7345.5,
+          "tCO2": 26933.3,
+          "mean_AGC_tC_ha": 105.9,
+          "n_px": 6936
+        },
+        "regression_exponential_primary": {
+          "tC": 6803.2,
+          "tCO2": 24945.1,
+          "mean_AGC_tC_ha": 98.1,
+          "n_px": 6936
+        },
+        "area_ha": 69.4
+      },
+      "predicted_full_region": {
+        "three_bin_baseline": {
+          "tC": 43744.0,
+          "tCO2": 160394.7,
+          "mean_AGC_tC_ha": 134.6,
+          "n_px": 32502
+        },
+        "regression_linear": {
+          "tC": 39254.7,
+          "tCO2": 143934.0,
+          "mean_AGC_tC_ha": 120.8,
+          "n_px": 32502
+        },
+        "regression_exponential_primary": {
+          "tC": 35824.1,
+          "tCO2": 131355.1,
+          "mean_AGC_tC_ha": 110.2,
+          "n_px": 32502
+        },
+        "area_ha": 325.0
+      },
+      "gfc_test": {
+        "three_bin_baseline": {
+          "tC": 6227.0,
+          "tCO2": 22832.3,
+          "mean_AGC_tC_ha": 140.0,
+          "n_px": 4448
+        },
+        "regression_linear": {
+          "tC": 6370.2,
+          "tCO2": 23357.4,
+          "mean_AGC_tC_ha": 143.2,
+          "n_px": 4448
+        },
+        "regression_exponential_primary": {
+          "tC": 5582.1,
+          "tCO2": 20467.8,
+          "mean_AGC_tC_ha": 125.5,
+          "n_px": 4448
+        },
+        "area_ha": 44.5
+      },
+      "gfc_full_region": {
+        "three_bin_baseline": {
+          "tC": 28236.5,
+          "tCO2": 103533.8,
+          "mean_AGC_tC_ha": 139.8,
+          "n_px": 20203
+        },
+        "regression_linear": {
+          "tC": 28966.8,
+          "tCO2": 106211.5,
+          "mean_AGC_tC_ha": 143.4,
+          "n_px": 20203
+        },
+        "regression_exponential_primary": {
+          "tC": 25700.4,
+          "tCO2": 94234.9,
+          "mean_AGC_tC_ha": 127.2,
+          "n_px": 20203
+        },
+        "area_ha": 202.0
+      }
+    },
+    "kodagu": {
+      "ndvi_lo": 0.8,
+      "ndvi_hi": 0.8357,
+      "predicted_test": {
+        "three_bin_baseline": {
+          "tC": 912.0,
+          "tCO2": 3344.0,
+          "mean_AGC_tC_ha": 127.7,
+          "n_px": 714
+        },
+        "regression_linear": {
+          "tC": 1505.3,
+          "tCO2": 5519.5,
+          "mean_AGC_tC_ha": 210.8,
+          "n_px": 714
+        },
+        "regression_exponential_primary": {
+          "tC": 1538.6,
+          "tCO2": 5641.6,
+          "mean_AGC_tC_ha": 215.5,
+          "n_px": 714
+        },
+        "area_ha": 7.1
+      },
+      "predicted_full_region": {
+        "three_bin_baseline": {
+          "tC": 11533.0,
+          "tCO2": 42287.7,
+          "mean_AGC_tC_ha": 108.5,
+          "n_px": 10629
+        },
+        "regression_linear": {
+          "tC": 10054.2,
+          "tCO2": 36865.3,
+          "mean_AGC_tC_ha": 94.6,
+          "n_px": 10629
+        },
+        "regression_exponential_primary": {
+          "tC": 10464.0,
+          "tCO2": 38368.1,
+          "mean_AGC_tC_ha": 98.4,
+          "n_px": 10629
+        },
+        "area_ha": 106.3
+      },
+      "gfc_test": {
+        "three_bin_baseline": {
+          "tC": 2957.5,
+          "tCO2": 10844.2,
+          "mean_AGC_tC_ha": 139.8,
+          "n_px": 2115
+        },
+        "regression_linear": {
+          "tC": 5411.3,
+          "tCO2": 19841.5,
+          "mean_AGC_tC_ha": 255.9,
+          "n_px": 2115
+        },
+        "regression_exponential_primary": {
+          "tC": 5605.3,
+          "tCO2": 20552.8,
+          "mean_AGC_tC_ha": 265.0,
+          "n_px": 2115
+        },
+        "area_ha": 21.2
+      },
+      "gfc_full_region": {
+        "three_bin_baseline": {
+          "tC": 9692.0,
+          "tCO2": 35537.3,
+          "mean_AGC_tC_ha": 122.9,
+          "n_px": 7886
+        },
+        "regression_linear": {
+          "tC": 13724.2,
+          "tCO2": 50322.0,
+          "mean_AGC_tC_ha": 174.0,
+          "n_px": 7886
+        },
+        "regression_exponential_primary": {
+          "tC": 14161.5,
+          "tCO2": 51925.4,
+          "mean_AGC_tC_ha": 179.6,
+          "n_px": 7886
+        },
+        "area_ha": 78.9
+      }
+    },
+    "nilgiris": {
+      "ndvi_lo": 0.6667,
+      "ndvi_hi": 0.8004,
+      "predicted_test": {
+        "three_bin_baseline": {
+          "tC": 1959.5,
+          "tCO2": 7184.8,
+          "mean_AGC_tC_ha": 146.6,
+          "n_px": 1337
+        },
+        "regression_linear": {
+          "tC": 2328.4,
+          "tCO2": 8537.3,
+          "mean_AGC_tC_ha": 174.1,
+          "n_px": 1337
+        },
+        "regression_exponential_primary": {
+          "tC": 2495.7,
+          "tCO2": 9151.0,
+          "mean_AGC_tC_ha": 186.7,
+          "n_px": 1337
+        },
+        "area_ha": 13.4
+      },
+      "predicted_full_region": {
+        "three_bin_baseline": {
+          "tC": 31128.5,
+          "tCO2": 114137.8,
+          "mean_AGC_tC_ha": 147.8,
+          "n_px": 21068
+        },
+        "regression_linear": {
+          "tC": 38127.2,
+          "tCO2": 139799.9,
+          "mean_AGC_tC_ha": 181.0,
+          "n_px": 21068
+        },
+        "regression_exponential_primary": {
+          "tC": 39960.1,
+          "tCO2": 146520.5,
+          "mean_AGC_tC_ha": 189.7,
+          "n_px": 21068
+        },
+        "area_ha": 210.7
+      },
+      "gfc_test": {
+        "three_bin_baseline": {
+          "tC": 2193.5,
+          "tCO2": 8042.8,
+          "mean_AGC_tC_ha": 153.0,
+          "n_px": 1434
+        },
+        "regression_linear": {
+          "tC": 2842.7,
+          "tCO2": 10423.1,
+          "mean_AGC_tC_ha": 198.2,
+          "n_px": 1434
+        },
+        "regression_exponential_primary": {
+          "tC": 2987.1,
+          "tCO2": 10952.8,
+          "mean_AGC_tC_ha": 208.3,
+          "n_px": 1434
+        },
+        "area_ha": 14.3
+      },
+      "gfc_full_region": {
+        "three_bin_baseline": {
+          "tC": 26522.0,
+          "tCO2": 97247.3,
+          "mean_AGC_tC_ha": 154.1,
+          "n_px": 17211
+        },
+        "regression_linear": {
+          "tC": 34840.9,
+          "tCO2": 127749.9,
+          "mean_AGC_tC_ha": 202.4,
+          "n_px": 17211
+        },
+        "regression_exponential_primary": {
+          "tC": 36757.2,
+          "tCO2": 134776.6,
+          "mean_AGC_tC_ha": 213.6,
+          "n_px": 17211
+        },
+        "area_ha": 172.1
+      }
+    },
+    "anamalai": {
+      "ndvi_lo": 0.7521,
+      "ndvi_hi": 0.8252,
+      "predicted_test": {
+        "three_bin_baseline": {
+          "tC": 2693.0,
+          "tCO2": 9874.3,
+          "mean_AGC_tC_ha": 116.7,
+          "n_px": 2307
+        },
+        "regression_linear": {
+          "tC": 4047.7,
+          "tCO2": 14841.4,
+          "mean_AGC_tC_ha": 175.5,
+          "n_px": 2307
+        },
+        "regression_exponential_primary": {
+          "tC": 3525.6,
+          "tCO2": 12927.3,
+          "mean_AGC_tC_ha": 152.8,
+          "n_px": 2307
+        },
+        "area_ha": 23.1
+      },
+      "predicted_full_region": {
+        "three_bin_baseline": {
+          "tC": 11373.5,
+          "tCO2": 41702.8,
+          "mean_AGC_tC_ha": 125.6,
+          "n_px": 9057
+        },
+        "regression_linear": {
+          "tC": 14840.9,
+          "tCO2": 54416.7,
+          "mean_AGC_tC_ha": 163.9,
+          "n_px": 9057
+        },
+        "regression_exponential_primary": {
+          "tC": 14671.7,
+          "tCO2": 53796.2,
+          "mean_AGC_tC_ha": 162.0,
+          "n_px": 9057
+        },
+        "area_ha": 90.6
+      },
+      "gfc_test": {
+        "three_bin_baseline": {
+          "tC": 2912.0,
+          "tCO2": 10677.3,
+          "mean_AGC_tC_ha": 118.2,
+          "n_px": 2463
+        },
+        "regression_linear": {
+          "tC": 4882.7,
+          "tCO2": 17903.1,
+          "mean_AGC_tC_ha": 198.2,
+          "n_px": 2463
+        },
+        "regression_exponential_primary": {
+          "tC": 4217.6,
+          "tCO2": 15464.5,
+          "mean_AGC_tC_ha": 171.2,
+          "n_px": 2463
+        },
+        "area_ha": 24.6
+      },
+      "gfc_full_region": {
+        "three_bin_baseline": {
+          "tC": 11687.5,
+          "tCO2": 42854.2,
+          "mean_AGC_tC_ha": 128.6,
+          "n_px": 9087
+        },
+        "regression_linear": {
+          "tC": 17271.0,
+          "tCO2": 63326.9,
+          "mean_AGC_tC_ha": 190.1,
+          "n_px": 9087
+        },
+        "regression_exponential_primary": {
+          "tC": 16620.6,
+          "tCO2": 60942.3,
+          "mean_AGC_tC_ha": 182.9,
+          "n_px": 9087
+        },
+        "area_ha": 90.9
+      }
+    }
+  },
+  "pooled": {
+    "predicted_test": {
+      "three_bin_baseline": {
+        "tC": 14624.0,
+        "tCO2": 53621.3,
+        "mean_AGC_tC_ha": 129.4,
+        "n_px": 11294
+      },
+      "regression_linear": {
+        "tC": 15226.9,
+        "tCO2": 55832.0,
+        "mean_AGC_tC_ha": 134.8,
+        "n_px": 11294
+      },
+      "regression_exponential_primary": {
+        "tC": 14363.1,
+        "tCO2": 52664.7,
+        "mean_AGC_tC_ha": 127.1,
+        "n_px": 11294
+      },
+      "area_ha": 113.0
+    },
+    "gfc_test": {
+      "three_bin_baseline": {
+        "tC": 14290.0,
+        "tCO2": 52396.7,
+        "mean_AGC_tC_ha": 136.6,
+        "n_px": 10460
+      },
+      "regression_linear": {
+        "tC": 19506.9,
+        "tCO2": 71525.3,
+        "mean_AGC_tC_ha": 186.5,
+        "n_px": 10460
+      },
+      "regression_exponential_primary": {
+        "tC": 18392.1,
+        "tCO2": 67437.7,
+        "mean_AGC_tC_ha": 175.8,
+        "n_px": 10460
+      },
+      "area_ha": 104.6
+    },
+    "predicted_full_region": {
+      "three_bin_baseline": {
+        "tC": 97779.0,
+        "tCO2": 358523.0,
+        "mean_AGC_tC_ha": 133.5,
+        "n_px": 73256
+      },
+      "regression_linear": {
+        "tC": 102277.0,
+        "tCO2": 375015.7,
+        "mean_AGC_tC_ha": 139.6,
+        "n_px": 73256
+      },
+      "regression_exponential_primary": {
+        "tC": 100919.9,
+        "tCO2": 370039.6,
+        "mean_AGC_tC_ha": 137.8,
+        "n_px": 73256
+      },
+      "area_ha": 732.6
+    },
+    "gfc_full_region": {
+      "three_bin_baseline": {
+        "tC": 76138.0,
+        "tCO2": 279172.7,
+        "mean_AGC_tC_ha": 140.0,
+        "n_px": 54387
+      },
+      "regression_linear": {
+        "tC": 94802.9,
+        "tCO2": 347610.6,
+        "mean_AGC_tC_ha": 174.3,
+        "n_px": 54387
+      },
+      "regression_exponential_primary": {
+        "tC": 93239.7,
+        "tCO2": 341878.9,
+        "mean_AGC_tC_ha": 171.4,
+        "n_px": 54387
+      },
+      "area_ha": 543.9
+    }
+  }
+}

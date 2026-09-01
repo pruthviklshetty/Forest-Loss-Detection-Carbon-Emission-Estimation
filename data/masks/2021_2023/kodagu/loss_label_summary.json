@@ -1,0 +1,55 @@
+{
+  "region_id": "kodagu",
+  "region_name": "Kodagu (Madikeri), Western Ghats, Karnataka, India",
+  "source_raster": "data\\masks\\2021_2023\\kodagu\\hansen_gfc_raw.tif",
+  "gee_asset": "UMD/hansen/global_forest_change_2024_v1_12",
+  "canopy_threshold_pct": 30.0,
+  "loss_year_codes": [
+    21,
+    22
+  ],
+  "grid": {
+    "width": 3052,
+    "height": 2774,
+    "crs": "EPSG:32643",
+    "gsd_m": 10
+  },
+  "pixels": {
+    "total": 8466248,
+    "valid_land": 8371500,
+    "valid_land_pct": 98.881,
+    "forest2000": 6462181,
+    "forest2000_pct_of_land": 77.193,
+    "loss_positive": 7886,
+    "loss_positive_pct_of_land": 0.0942,
+    "loss_positive_pct_of_forest2000": 0.122
+  },
+  "lossyear_histogram_over_land": {
+    "0": 8148152,
+    "1": 4580,
+    "2": 969,
+    "3": 9016,
+    "4": 3141,
+    "5": 5121,
+    "6": 1985,
+    "7": 10791,
+    "8": 8223,
+    "9": 9285,
+    "10": 2509,
+    "11": 1226,
+    "12": 5413,
+    "13": 3204,
+    "14": 8583,
+    "15": 1664,
+    "16": 4463,
+    "17": 5992,
+    "18": 59721,
+    "19": 17446,
+    "20": 11072,
+    "21": 5884,
+    "22": 4360,
+    "23": 21421,
+    "24": 17279
+  },
+  "ha_lost_gfc_reference": 78.86
+}
